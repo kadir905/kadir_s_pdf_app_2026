@@ -65,8 +65,9 @@ class OllamaWorker(QThread):
 
     def run(self):
         try:
-            # Streaming keeps the socket active while Ollama loads the model or
-            # generates a long answer. A single response can time out meanwhile.
+            # Akışlı yanıt kullanmak, Ollama model yüklerken veya uzun yanıt
+            # üretirken bağlantının açık kalmasını sağlar; tek yanıt isteği bu
+            # sırada zaman aşımına uğramaz.
             payload = json.dumps({
                 "model": self.model,
                 "prompt": self.prompt,
@@ -180,6 +181,7 @@ class VoskWorker(QThread):
 
     def run(self):
         try:
+            # Mikrofon verisi yerel Vosk modeliyle işlenir; ses kaydı dışarı gönderilmez.
             import sounddevice as sd
             from vosk import KaldiRecognizer, Model
             if not self.model_path.is_dir():
@@ -269,7 +271,7 @@ class VoiceToTextDialog(QDialog):
         except Exception as exc: QMessageBox.critical(self, "PDF kaydetme", str(exc))
 
     def print_transcript(self):
-        """Show a print preview, then send the voice transcript to the selected printer."""
+        """Önizlemeyi gösterir ve onaylanırsa sesli metni seçilen yazıcıya gönderir."""
         text = self.output.toPlainText().strip()
         if not text:
             self.status.setText("Yazdırmak için önce sesinizi metne dönüştürün")
@@ -279,6 +281,7 @@ class VoiceToTextDialog(QDialog):
         document.setPlainText(text)
         dialog = QPrintPreviewDialog(printer, self)
         dialog.setWindowTitle("Sesli metin yazdırma önizlemesi")
+        # Önizleme her yenilendiğinde metni yazdırılabilir belgeye dönüştür.
         dialog.paintRequested.connect(document.print_)
         if dialog.exec() != QDialog.Accepted:
             self.status.setText("Yazdırma iptal edildi")
@@ -949,8 +952,8 @@ class PDFStudio(QMainWindow):
     def render_page(self):
         pixmaps = []
         if self.doc and fitz:
-            # 1.35x maps the PDF's 72 DPI coordinate space more cleanly to a
-            # modern display while preserving the existing zoom percentage.
+            # 1.35 katsayısı, PDF'in 72 DPI koordinat alanını modern ekranlara
+            # daha düzgün taşır ve mevcut yakınlaştırma yüzdesini korur.
             requested = max(.25, self.zoom) * 1.35
             for page in self.doc:
                 rect = page.rect
