@@ -119,6 +119,9 @@ TRANSLATIONS = {
     "Qwen yanıtları burada görünecek.": {"en": "Qwen responses will appear here.", "es": "Las respuestas de Qwen aparecerán aquí."},
     "Gönder": {"en": "Send", "es": "Enviar"},
     "Notları düzenle": {"en": "Organize notes", "es": "Organizar notas"},
+    "Vosk · Sesli metin": {"en": "Vosk · Voice to text", "es": "Vosk · Voz a texto"},
+    "Takvim ve hatırlatıcılar": {"en": "Calendar and reminders", "es": "Calendario y recordatorios"},
+    "Qwen 2.5 · Türkçe fine-tuning hazırlığı": {"en": "Qwen 2.5 · Turkish fine-tuning setup", "es": "Qwen 2.5 · Preparación de fine-tuning en turco"},
 }
 
 
@@ -310,7 +313,7 @@ class VoskWorker(QThread):
 class VoiceToTextDialog(QDialog):
     def __init__(self, owner, parent=None):
         super().__init__(parent or owner); self.owner = owner; self.worker = None
-        self.setWindowTitle("Vosk · Sesli metin")
+        self.setWindowTitle(owner.tr_text("Vosk · Sesli metin"))
         self.resize(760, 560)
         layout = QVBoxLayout(self)
         intro = QLabel("Mikrofonunuzdan gelen Türkçe sesi yerel Vosk modeliyle metne dönüştürün. Ses bilgisayardan dışarı gönderilmez."); intro.setWordWrap(True); intro.setObjectName("muted"); layout.addWidget(intro)
@@ -401,7 +404,7 @@ class QwenFineTuningDialog(QDialog):
         super().__init__(parent or owner)
         self.owner = owner
         self.examples = [dict(example) for example in getattr(owner, "qwen_finetune_examples", [])]
-        self.setWindowTitle("Qwen 2.5 · Türkçe fine-tuning hazırlığı")
+        self.setWindowTitle(owner.tr_text("Qwen 2.5 · Türkçe fine-tuning hazırlığı"))
         self.resize(980, 720)
         layout = QVBoxLayout(self)
         intro = QLabel("Türkçe örnekler ekleyerek Qwen için kaliteli eğitim verisi hazırlayın. Ollama modeli doğrudan eğitmez; bu ekran JSONL veri seti ve Ollama Modelfile üretir.")
@@ -544,7 +547,7 @@ class DoubleClickCalendar(QCalendarWidget):
 class CalendarDialog(QDialog):
     def __init__(self, owner, parent=None):
         super().__init__(parent or owner); self.owner = owner; self.store = owner.reminder_store
-        self.setWindowTitle("Takvim ve hatırlatıcılar"); self.resize(760, 650)
+        self.setWindowTitle(owner.tr_text("Takvim ve hatırlatıcılar")); self.resize(760, 650)
         layout = QVBoxLayout(self)
         intro = QLabel("Bir güne çift tıklayarak tarih, saat ve not ekleyin. Vadesi gelen notlar uygulama açıkken otomatik olarak uyarı olarak gösterilir."); intro.setWordWrap(True); intro.setObjectName("muted"); layout.addWidget(intro)
         self.calendar = DoubleClickCalendar(); self.calendar.setGridVisible(True); self.calendar.setMinimumHeight(280); self.calendar.date_double_clicked.connect(self.open_note_editor); layout.addWidget(self.calendar)
