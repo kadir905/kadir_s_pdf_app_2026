@@ -39,6 +39,20 @@ class PDFStudioTests(unittest.TestCase):
         dialog.output.setPlainText("Yazdırılacak sesli metin")
         dialog.close()
 
+    def test_voice_print_without_text_is_blocked(self):
+        dialog = pdf_studio.VoiceToTextDialog(self.window)
+        dialog.print_transcript()
+        self.assertIn("Yazdırmak için önce", dialog.status.text())
+        dialog.close()
+
+    def test_voice_transcript_appends_and_keeps_cursor_at_end(self):
+        dialog = pdf_studio.VoiceToTextDialog(self.window)
+        dialog.append_transcript("ilk cümle")
+        dialog.append_transcript("ikinci cümle")
+        self.assertEqual(dialog.output.toPlainText(), "ilk cümle ikinci cümle")
+        self.assertEqual(dialog.output.textCursor().position(), len("ilk cümle ikinci cümle"))
+        dialog.close()
+
     def test_theme_switching_updates_stylesheet(self):
         self.window.set_theme("light")
         self.assertIn("#f4f6fa", self.window.styleSheet())

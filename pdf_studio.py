@@ -28,8 +28,8 @@ except ImportError:
     pyttsx3 = None
 
 from PySide6.QtCore import QPoint, QRectF, QDate, QTime, QThread, QTimer, Qt, Signal
-from PySide6.QtGui import QAction, QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap, QTextDocument
-from PySide6.QtPrintSupport import QPrintDialog, QPrinter
+from PySide6.QtGui import QAction, QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap, QTextCursor, QTextDocument
+from PySide6.QtPrintSupport import QPrintPreviewDialog, QPrinter
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QFileDialog, QFrame, QHBoxLayout,
     QCheckBox, QDialog, QDialogButtonBox, QInputDialog, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QScrollArea,
     QSizePolicy, QSpinBox, QSplitter, QStatusBar, QTabWidget, QTextEdit, QVBoxLayout, QWidget, QMenuBar,
@@ -238,7 +238,7 @@ class VoiceToTextDialog(QDialog):
         self.worker = VoskWorker(self.owner.vosk_model_path, self); self.worker.started.connect(lambda: self.status.setText("Dinleniyor · konuşabilirsiniz")); self.worker.transcript.connect(self.append_transcript); self.worker.partial.connect(lambda text: self.partial_label.setText(f"Dinlenen bölüm: {text}")); self.worker.failed.connect(self.voice_failed); self.worker.finished.connect(self.voice_finished); self.worker.start(); self.start_button.setEnabled(False); self.stop_button.setEnabled(True)
 
     def append_transcript(self, text):
-        current = self.output.toPlainText().strip(); self.output.setPlainText(f"{current} {text}".strip()); cursor = self.output.textCursor(); cursor.movePosition(cursor.End); self.output.setTextCursor(cursor)
+        current = self.output.toPlainText().strip(); self.output.setPlainText(f"{current} {text}".strip()); cursor = self.output.textCursor(); cursor.movePosition(QTextCursor.End); self.output.setTextCursor(cursor)
 
     def stop_listening(self):
         if self.worker and self.worker.isRunning(): self.status.setText("Kayıt durduruluyor…"); self.worker.stop(); self.worker.wait(2500)
@@ -269,21 +269,21 @@ class VoiceToTextDialog(QDialog):
         except Exception as exc: QMessageBox.critical(self, "PDF kaydetme", str(exc))
 
     def print_transcript(self):
-        """Open the system printer dialog and print the current voice transcript."""
+        """Show a print preview, then send the voice transcript to the selected printer."""
         text = self.output.toPlainText().strip()
         if not text:
             self.status.setText("Yazdırmak için önce sesinizi metne dönüştürün")
             return
         printer = QPrinter(QPrinter.HighResolution)
-        dialog = QPrintDialog(printer, self)
-        dialog.setWindowTitle("Sesli metni yazdır")
+        document = QTextDocument()
+        document.setPlainText(text)
+        dialog = QPrintPreviewDialog(printer, self)
+        dialog.setWindowTitle("Sesli metin yazdırma önizlemesi")
+        dialog.paintRequested.connect(document.print_)
         if dialog.exec() != QDialog.Accepted:
             self.status.setText("Yazdırma iptal edildi")
             return
-        document = QTextDocument()
-        document.setPlainText(text)
-        document.print_(printer)
-        self.status.setText("Sesli metin yazıcıya gönderildi")
+        self.status.setText("Sesli metin yazdırma işlemi tamamlandı")
 
     def send_to_ai(self):
         text = self.output.toPlainText().strip()
