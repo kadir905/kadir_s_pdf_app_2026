@@ -1,5 +1,27 @@
 # Kadir's PDF App
 
+## Arayuz galerisi
+
+Asagidaki gorseller uygulamanin temel ekranlarini ve kullanim akislarini gosterir. Gorseller README icin hazirlanmis tanitim/mockup ekranlaridir; uygulamanin gercek islevleri [pdf_studio.py](./pdf_studio.py) icinde yer alir.
+
+### PDF calisma alani
+
+Tum PDF sayfalarini dikey akista goruntuleme, sayfa onizlemeleri, anotasyon araclari, yakinlastirma ve AI paneli.
+
+![PDF calisma alani](./docs/screenshots/pdf-workspace.png)
+
+### Takvim ve hatirlaticilar
+
+Takvim gorunumu, secili gun notu, saatli hatirlatici kaydi ve bildirim akisi.
+
+![Takvim ve hatirlaticilar](./docs/screenshots/calendar-reminders.png)
+
+### AI, sesli metin ve seslendirme
+
+Vosk ile mikrofon kaydi, Qwen/Ollama AI paneli, metin-to-speech kontrolleri ve PDF ozet alani.
+
+![AI ve ses araclari](./docs/screenshots/ai-voice-tools.png)
+
 Kadir's PDF App, Windows üzerinde çalışan, PDF belgelerini yerel olarak açmak, incelemek, düzenlemek, notlandırmak ve dışa aktarmak için geliştirilmiş bir masaüstü uygulamasıdır. Uygulama PySide6 arayüzünü, PyMuPDF belge motorunu ve isteğe bağlı olarak Ollama/Qwen yerel yapay zekâ desteğini kullanır.
 
 ## İçindekiler
