@@ -33,6 +33,12 @@ class PDFStudioTests(unittest.TestCase):
         file_menu = next(action.menu() for action in self.window.menuBar().actions() if action.text() == "Dosya")
         self.assertIn("Yazdır", [action.text() for action in file_menu.actions()])
 
+    def test_voice_dialog_has_printer_output_control(self):
+        dialog = pdf_studio.VoiceToTextDialog(self.window)
+        self.assertTrue(any(button.text() == "Yazdır" for button in dialog.findChildren(pdf_studio.QPushButton)))
+        dialog.output.setPlainText("Yazdırılacak sesli metin")
+        dialog.close()
+
     def test_theme_switching_updates_stylesheet(self):
         self.window.set_theme("light")
         self.assertIn("#f4f6fa", self.window.styleSheet())

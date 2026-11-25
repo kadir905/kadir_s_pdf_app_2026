@@ -28,7 +28,8 @@ except ImportError:
     pyttsx3 = None
 
 from PySide6.QtCore import QPoint, QRectF, QDate, QTime, QThread, QTimer, Qt, Signal
-from PySide6.QtGui import QAction, QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtGui import QAction, QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap, QTextDocument
+from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QFileDialog, QFrame, QHBoxLayout,
     QCheckBox, QDialog, QDialogButtonBox, QInputDialog, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QScrollArea,
     QSizePolicy, QSpinBox, QSplitter, QStatusBar, QTabWidget, QTextEdit, QVBoxLayout, QWidget, QMenuBar,
@@ -225,7 +226,7 @@ class VoiceToTextDialog(QDialog):
         self.status = QLabel("Hazır · Kayıt başlatmak için düğmeye basın", objectName="muted"); layout.addWidget(self.status)
         self.partial_label = QLabel("Dinlenen bölüm: —", objectName="muted"); self.partial_label.setWordWrap(True); layout.addWidget(self.partial_label)
         layout.addWidget(QLabel("Dönüştürülen metin:")); self.output = QTextEdit(); self.output.setPlaceholderText("Konuştuğunuz metin burada görünecek…"); layout.addWidget(self.output, 1)
-        controls = QHBoxLayout(); self.start_button = QPushButton("●  Dinlemeyi başlat"); self.start_button.setObjectName("primary"); self.start_button.clicked.connect(self.start_listening); controls.addWidget(self.start_button); self.stop_button = QPushButton("Durdur"); self.stop_button.setEnabled(False); self.stop_button.clicked.connect(self.stop_listening); controls.addWidget(self.stop_button); self.speak_button = QPushButton("🔊 Tolga ile seslendir"); self.speak_button.clicked.connect(self.speak_transcript); controls.addWidget(self.speak_button); pdf_button = QPushButton("PDF olarak kaydet"); pdf_button.clicked.connect(self.save_transcript_pdf); controls.addWidget(pdf_button); controls.addStretch(); copy_button = QPushButton("Panoya kopyala"); copy_button.clicked.connect(lambda: QApplication.clipboard().setText(self.output.toPlainText())); controls.addWidget(copy_button); ai_button = QPushButton("AI sorusuna aktar"); ai_button.clicked.connect(self.send_to_ai); controls.addWidget(ai_button); notes_button = QPushButton("Notlara aktar"); notes_button.clicked.connect(self.send_to_notes); controls.addWidget(notes_button); layout.addLayout(controls)
+        controls = QHBoxLayout(); self.start_button = QPushButton("●  Dinlemeyi başlat"); self.start_button.setObjectName("primary"); self.start_button.clicked.connect(self.start_listening); controls.addWidget(self.start_button); self.stop_button = QPushButton("Durdur"); self.stop_button.setEnabled(False); self.stop_button.clicked.connect(self.stop_listening); controls.addWidget(self.stop_button); self.speak_button = QPushButton("🔊 Tolga ile seslendir"); self.speak_button.clicked.connect(self.speak_transcript); controls.addWidget(self.speak_button); pdf_button = QPushButton("PDF olarak kaydet"); pdf_button.clicked.connect(self.save_transcript_pdf); controls.addWidget(pdf_button); print_button = QPushButton("Yazdır"); print_button.setToolTip("Sesli metni seçtiğiniz yazıcıdan yazdır"); print_button.clicked.connect(self.print_transcript); controls.addWidget(print_button); controls.addStretch(); copy_button = QPushButton("Panoya kopyala"); copy_button.clicked.connect(lambda: QApplication.clipboard().setText(self.output.toPlainText())); controls.addWidget(copy_button); ai_button = QPushButton("AI sorusuna aktar"); ai_button.clicked.connect(self.send_to_ai); controls.addWidget(ai_button); notes_button = QPushButton("Notlara aktar"); notes_button.clicked.connect(self.send_to_notes); controls.addWidget(notes_button); layout.addLayout(controls)
 
     def choose_model(self):
         path = QFileDialog.getExistingDirectory(self, "Vosk model klasörünü seç", self.model_path.text() or str(APP_DIR))
@@ -266,6 +267,23 @@ class VoiceToTextDialog(QDialog):
         try:
             self.owner.write_notes_pdf(path, text); self.status.setText("Ses metni PDF olarak kaydedildi")
         except Exception as exc: QMessageBox.critical(self, "PDF kaydetme", str(exc))
+
+    def print_transcript(self):
+        """Open the system printer dialog and print the current voice transcript."""
+        text = self.output.toPlainText().strip()
+        if not text:
+            self.status.setText("Yazdırmak için önce sesinizi metne dönüştürün")
+            return
+        printer = QPrinter(QPrinter.HighResolution)
+        dialog = QPrintDialog(printer, self)
+        dialog.setWindowTitle("Sesli metni yazdır")
+        if dialog.exec() != QDialog.Accepted:
+            self.status.setText("Yazdırma iptal edildi")
+            return
+        document = QTextDocument()
+        document.setPlainText(text)
+        document.print_(printer)
+        self.status.setText("Sesli metin yazıcıya gönderildi")
 
     def send_to_ai(self):
         text = self.output.toPlainText().strip()

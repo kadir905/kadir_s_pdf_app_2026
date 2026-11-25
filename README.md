@@ -113,6 +113,7 @@ Metin anotasyonlarında yazı tipi, boyut, kalın, italik, altı çizili, hizala
 
 - Sağ panelde otomatik kaydedilen not alanı.
 - Notları sesli okuma (`pyttsx3`).
+- Vosk ile oluşturulan sesli metni doğrudan sistem yazıcısına gönderme.
 - Notları PDF, Word, Excel veya TXT olarak kaydetme.
 - Koyu, beyaz ve yumuşak açık tema seçenekleri.
 - Sol ve sağ panelleri bağımsız olarak açıp kapatma.
@@ -226,6 +227,7 @@ Model klasörü uygulamanın yanında doğrudan bulunuyorsa uygulama bunu otomat
 6. Dinleme bittiğinde metin Windows’ta kurulu `Tolga` sesiyle otomatik olarak okunur.
 7. `🔊 Tolga ile seslendir` düğmesiyle metni tekrar okutun.
 8. `PDF olarak kaydet` düğmesiyle sesli metni çok sayfalı PDF olarak dışa aktarın.
+9. `Yazdır` düğmesiyle metni Windows yazıcı seçim penceresinden yazdırın. Yazdırma işlemi için önce metin alanında içerik bulunmalıdır.
 9. Metni panoya kopyalayın, AI soru alanına aktarın veya notlara ekleyin.
 
 Tolga sesi bulunamazsa uygulama Windows’un varsayılan sesini kullanır ve durum alanında bilgi verir. Sesin Windows konuşma ayarlarında kurulu ve etkin olması gerekir. PDF dışa aktarımında Türkçe karakterler için Windows’taki `Segoe UI` veya `Arial` yazı tipi kullanılır; uzun metinler otomatik olarak birden fazla sayfaya bölünür.
