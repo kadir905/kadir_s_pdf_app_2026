@@ -74,6 +74,7 @@ Kadir's PDF App, Windows üzerinde çalışan, PDF belgelerini yerel olarak açm
 - [Takvim ve hatırlatıcılar](#takvim-ve-hatırlatıcılar)
 - [Yerel AI asistanı](#yerel-ai-asistanı)
 - [Türkçe fine-tuning hazırlığı](#türkçe-fine-tuning-hazırlığı)
+- [Dil seçenekleri](#dil-seçenekleri)
 - [Klavye kısayolları](#klavye-kısayolları)
 - [Testler](#testler)
 - [Windows EXE oluşturma](#windows-exe-oluşturma)
@@ -734,3 +735,44 @@ Komut bulunamıyorsa Ollama’yı kurun veya yeni bir PowerShell penceresi açar
 ## Lisans ve geliştirme notu
 
 Bu proje yerel PDF çalışma alanı olarak geliştirilmiştir. Üretim dağıtımından önce bağımlılık lisanslarının, dağıtım boyutunun ve Ollama/Qwen model lisansının ayrıca incelenmesi önerilir.
+
+## Dil seçenekleri
+
+Uygulama menüsündeki **Dil / Language** bölümünden **Türkçe**, **English** veya **Español** seçilebilir. Seçim anında menüler, sekmeler, gezinme düğmeleri, dashboard kartları ve yaygın işlem metinleri güncellenir. Seçilen dil yerel durum dosyasına kaydedilir ve uygulama yeniden açıldığında korunur. PDF içeriği, dosya adları ve kullanıcı notları değiştirilmez.
+
+## English
+
+Kadir's PDF App is a local Windows desktop application for opening, reading, annotating, exporting and printing PDF documents. The interface can be switched at runtime between Turkish, English and Spanish from the **Language / Dil** menu. The selected language is saved locally and restored on the next launch.
+
+### Main features
+
+- Vertical PDF page viewer with high-quality RGB rendering, zoom controls and scrollbar navigation.
+- Text, drawing, highlight and shape annotations with undo/redo support.
+- Notes that can be saved as PDF, Word, Excel or TXT, printed, copied and read aloud with the Windows voice engine.
+- Local Vosk speech-to-text support using `vosk-model-small-tr-0.3`.
+- Local Ollama/Qwen 2.5 assistant for summaries, document questions and note cleanup.
+- Qwen fine-tuning preparation screen that exports JSONL training data and an Ollama Modelfile.
+- Calendar reminders stored in a local SQLite database and shown while the application is running.
+- Search, starred documents, recent files, themes, full-screen mode and a Windows EXE distribution with the application ICO embedded.
+
+### Language selection
+
+Open **Language / Dil** in the application menu and choose **Türkçe**, **English** or **Español**. Menu labels, navigation buttons, dashboard cards, tabs and common application controls are refreshed immediately. PDF content, filenames and user-created notes are intentionally kept unchanged.
+
+### English setup
+
+```powershell
+py -m pip install -r requirements.txt
+py pdf_studio.py
+```
+
+For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.0.0 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.0.0).
+
+### English EXE build
+
+```powershell
+py -m pip install pyinstaller
+pyinstaller --noconfirm --clean KadirsPDFApp.spec
+```
+
+The generated file is `dist\\KadirsPDFApp.exe`. The ICO file is embedded through `KadirsPDFApp.spec`; Ollama, the Qwen model and the Vosk model remain separate runtime resources.

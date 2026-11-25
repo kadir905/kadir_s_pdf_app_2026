@@ -46,6 +46,81 @@ except OSError:
 STATE_FILE = USER_DATA_DIR / "pdf_studio_state.json"
 VOSK_MODEL_NAME = "vosk-model-small-tr-0.3"
 
+# Arayüzün üç dilde kullanılabilmesi için sabit metinlerin karşılıkları.
+# Dosya adları, PDF içeriği ve kullanıcı tarafından yazılan metinler çevrilmez.
+LANGUAGE_NAMES = {"tr": "Türkçe", "en": "English", "es": "Español"}
+TRANSLATIONS = {
+    "Dosya": {"en": "File", "es": "Archivo"},
+    "PDF aç": {"en": "Open PDF", "es": "Abrir PDF"},
+    "PDF dışa aktar": {"en": "Export PDF", "es": "Exportar PDF"},
+    "Yazdır": {"en": "Print", "es": "Imprimir"},
+    "Çıkış": {"en": "Exit", "es": "Salir"},
+    "Çalışma alanı": {"en": "Workspace", "es": "Espacio de trabajo"},
+    "Ana sayfa": {"en": "Home", "es": "Inicio"},
+    "Son kullanılanlar": {"en": "Recent", "es": "Recientes"},
+    "Yıldızlı": {"en": "Starred", "es": "Favoritos"},
+    "Açık PDF'yi yıldızla": {"en": "Star open PDF", "es": "Añadir PDF abierto a favoritos"},
+    "Açık PDF dosya yolunu kopyala": {"en": "Copy open PDF path", "es": "Copiar ruta del PDF abierto"},
+    "Paylaşılanlar": {"en": "Shared", "es": "Compartidos"},
+    "Belgelerim": {"en": "My documents", "es": "Mis documentos"},
+    "Tarama gelen kutusu": {"en": "Scan inbox", "es": "Bandeja de escaneo"},
+    "Görünüm": {"en": "View", "es": "Vista"},
+    "Tema": {"en": "Theme", "es": "Tema"},
+    "Windows 11 siyah": {"en": "Windows 11 dark", "es": "Windows 11 oscuro"},
+    "Beyaz": {"en": "Light", "es": "Claro"},
+    "Yumuşak açık": {"en": "Soft light", "es": "Claro suave"},
+    "Sol paneli aç/kapat": {"en": "Toggle left panel", "es": "Mostrar/ocultar panel izquierdo"},
+    "Sağ paneli aç/kapat": {"en": "Toggle right panel", "es": "Mostrar/ocultar panel derecho"},
+    "Tam ekran": {"en": "Full screen", "es": "Pantalla completa"},
+    "Ses": {"en": "Voice", "es": "Voz"},
+    "Vosk ile sesli metin": {"en": "Voice to text with Vosk", "es": "Voz a texto con Vosk"},
+    "Takvim": {"en": "Calendar", "es": "Calendario"},
+    "Takvimi aç": {"en": "Open calendar", "es": "Abrir calendario"},
+    "Bugünün notlarını kontrol et": {"en": "Check today's reminders", "es": "Comprobar recordatorios de hoy"},
+    "Qwen AI": {"en": "Qwen AI", "es": "Qwen AI"},
+    "Türkçe fine-tuning hazırlığı": {"en": "Turkish fine-tuning setup", "es": "Preparación de fine-tuning en turco"},
+    "Ollama hazırlığını durdur": {"en": "Stop Ollama setup", "es": "Detener configuración de Ollama"},
+    "Yardım": {"en": "Help", "es": "Ayuda"},
+    "Klavye kısayolları": {"en": "Keyboard shortcuts", "es": "Atajos de teclado"},
+    "Hakkında": {"en": "About", "es": "Acerca de"},
+    "Çalışma paneli": {"en": "Work panel", "es": "Panel de trabajo"},
+    "Panel": {"en": "Panel", "es": "Panel"},
+    "Dosya bilgileri": {"en": "File information", "es": "Información del archivo"},
+    "Notlar": {"en": "Notes", "es": "Notas"},
+    "PDF metni": {"en": "PDF text", "es": "Texto del PDF"},
+    "Yer imleri": {"en": "Bookmarks", "es": "Marcadores"},
+    "Düzenle": {"en": "Edit", "es": "Editar"},
+    "Metin editörü": {"en": "Text editor", "es": "Editor de texto"},
+    "Not dışa aktar": {"en": "Export notes", "es": "Exportar notas"},
+    "İşlemler": {"en": "Actions", "es": "Acciones"},
+    "Notları sesli oku": {"en": "Read notes aloud", "es": "Leer notas en voz alta"},
+    "PDF'yi özetle": {"en": "Summarize PDF", "es": "Resumir PDF"},
+    "Dil / Language": {"en": "Language / Dil", "es": "Idioma / Language"},
+    "Ara": {"en": "Search", "es": "Buscar"},
+    "Seçim": {"en": "Select", "es": "Seleccionar"},
+    "Genel istatistikler": {"en": "Overview", "es": "Resumen"},
+    "Açılan PDF": {"en": "Opened PDFs", "es": "PDF abiertos"},
+    "Toplam sayfa": {"en": "Total pages", "es": "Páginas totales"},
+    "Not karakteri": {"en": "Note characters", "es": "Caracteres de notas"},
+    "Çıkarılan kelime": {"en": "Extracted words", "es": "Palabras extraídas"},
+    "Son aktivite": {"en": "Recent activity", "es": "Actividad reciente"},
+    "İlk PDF'i aç": {"en": "Open first PDF", "es": "Abrir el primer PDF"},
+    "Dosya": {"en": "File", "es": "Archivo"},
+    "Metin rengi": {"en": "Text color", "es": "Color del texto"},
+    "AI Asistan": {"en": "AI Assistant", "es": "Asistente de IA"},
+    "ÇALIŞMA ALANI": {"en": "WORKSPACE", "es": "ESPACIO DE TRABAJO"},
+    "DOSYALAR": {"en": "FILES", "es": "ARCHIVOS"},
+    "DESTEK": {"en": "SUPPORT", "es": "SOPORTE"},
+    "ÇALIŞMA PANELİ": {"en": "WORK PANEL", "es": "PANEL DE TRABAJO"},
+    "Belgede ara…": {"en": "Search in document…", "es": "Buscar en el documento…"},
+    "Sayfa": {"en": "Page", "es": "Página"},
+    "Notlar otomatik olarak kaydedilir.": {"en": "Notes are saved automatically.", "es": "Las notas se guardan automáticamente."},
+    "Metni panoya kopyala": {"en": "Copy text to clipboard", "es": "Copiar texto al portapapeles"},
+    "Qwen yanıtları burada görünecek.": {"en": "Qwen responses will appear here.", "es": "Las respuestas de Qwen aparecerán aquí."},
+    "Gönder": {"en": "Send", "es": "Enviar"},
+    "Notları düzenle": {"en": "Organize notes", "es": "Organizar notas"},
+}
+
 
 def stop_thread(thread, stop_callback=None, timeout=3000):
     """Çalışan Qt iş parçacığını güvenli biçimde durdurur ve bekler."""
@@ -605,11 +680,50 @@ class PageCanvas(QWidget):
 class PDFStudio(QMainWindow):
     def __init__(self):
         super().__init__(); self.setWindowTitle("Kadir's PDF App"); self.resize(1480, 900); self.setMinimumSize(1150, 720)
+        self.language = "tr"
         self.current_file = None; self.doc = None; self.page_index = 0; self.page_count = 1; self.zoom = 1.; self.recent = []; self.starred = []; self.active_tool = "select"; self.tts = None
         self.autosave_enabled = True; self.close_after_export = False
         self.text_style = {"family": "Segoe UI", "size": 12, "bold": False, "italic": False, "underline": False, "color": "#1467d8", "align": "left"}
         self.current_theme = "dark"
-        self.reminder_store = ReminderStore(); self.load_state(); self.build_ui(); self.side = self.findChild(QFrame, "side"); self.right_panel = self.findChild(QFrame, "right"); self.install_header_controls(); self.build_editor_tab(); self.build_note_export_tab(); self.build_ai_tab(); self.apply_theme(); self.build_actions(); self.update_ui(); self.show_home(); self.reminder_timer = QTimer(self); self.reminder_timer.timeout.connect(self.check_reminders); self.reminder_timer.start(30000); QTimer.singleShot(1200, self.check_reminders)
+        self.reminder_store = ReminderStore(); self.load_state(); self.build_ui(); self.side = self.findChild(QFrame, "side"); self.right_panel = self.findChild(QFrame, "right"); self.install_header_controls(); self.build_editor_tab(); self.build_note_export_tab(); self.build_ai_tab(); self.apply_theme(); self.build_actions(); self.apply_language(); self.update_ui(); self.show_home(); self.reminder_timer = QTimer(self); self.reminder_timer.timeout.connect(self.check_reminders); self.reminder_timer.start(30000); QTimer.singleShot(1200, self.check_reminders)
+
+    def tr_text(self, text):
+        """Sabit bir arayüz metnini seçili dile çevirir."""
+        return TRANSLATIONS.get(text, {}).get(self.language, text)
+
+    def set_language(self, language):
+        """Dil değişikliğini kaydeder ve açık pencerenin metinlerini yeniler."""
+        if language not in LANGUAGE_NAMES or language == self.language:
+            return
+        self.language = language
+        self.save_state()
+        self.build_menubar()
+        self.apply_language()
+        self.status_msg(f"{LANGUAGE_NAMES[language]} language selected")
+
+    def apply_language(self):
+        """Oluşturulmuş ana pencere bileşenlerinin sabit metinlerini günceller."""
+        for widget in self.findChildren(QWidget):
+            if not hasattr(widget, "text"):
+                continue
+            original = widget.property("i18n_key")
+            if original is None:
+                try:
+                    original = widget.text()
+                    if original and original in TRANSLATIONS:
+                        widget.setProperty("i18n_key", original)
+                except (AttributeError, TypeError):
+                    continue
+            if original in TRANSLATIONS:
+                try:
+                    widget.setText(self.tr_text(original))
+                except (AttributeError, TypeError):
+                    pass
+        if hasattr(self, "tabs"):
+            tab_keys = ["Dosya", "Notlar", "PDF metni", "Yer imleri", "Metin editörü", "Not dışa aktar", "AI Asistan"]
+            for index, key in enumerate(tab_keys):
+                if index < self.tabs.count():
+                    self.tabs.setTabText(index, self.tr_text(key))
         if os.environ.get("PDF_STUDIO_TEST_MODE") != "1": self.start_ollama_setup()
 
     def install_header_controls(self):
@@ -646,29 +760,33 @@ class PDFStudio(QMainWindow):
         """)
 
     def build_menubar(self):
-        file_menu = self.menuBar().addMenu("Dosya")
-        file_menu.addAction("PDF aç", self.open_file, "Ctrl+O")
-        file_menu.addAction("PDF dışa aktar", self.export_file, "Ctrl+S")
-        file_menu.addAction("Yazdır", self.print_file, "Ctrl+P")
-        file_menu.addSeparator(); file_menu.addAction("Çıkış", self.close, "Alt+F4")
-        workspace_menu = self.menuBar().addMenu("Çalışma alanı")
-        workspace_menu.addAction("Ana sayfa", lambda: self.navigate("Ana sayfa"))
-        workspace_menu.addAction("Son kullanılanlar", lambda: self.navigate("Son kullanılanlar"))
-        workspace_menu.addAction("Yıldızlı", self.open_starred_documents)
-        workspace_menu.addAction("Açık PDF'yi yıldızla", self.toggle_star_current)
-        workspace_menu.addAction("Açık PDF dosya yolunu kopyala", self.share_current)
-        workspace_menu.addAction("Paylaşılanlar", lambda: self.navigate("Paylaşılanlar"))
-        workspace_menu.addSeparator(); workspace_menu.addAction("Belgelerim", lambda: self.navigate("Belgelerim")); workspace_menu.addAction("Tarama gelen kutusu", lambda: self.navigate("Tarama gelen kutusu"))
-        view_menu = self.menuBar().addMenu("Görünüm")
-        theme_menu = view_menu.addMenu("Tema")
-        theme_menu.addAction("Windows 11 siyah", lambda: self.set_theme("dark"))
-        theme_menu.addAction("Beyaz", lambda: self.set_theme("light"))
-        theme_menu.addAction("Yumuşak açık", lambda: self.set_theme("soft"))
-        view_menu.addSeparator(); view_menu.addAction("Sol paneli aç/kapat", self.toggle_sidebar); view_menu.addAction("Sağ paneli aç/kapat", self.toggle_right_panel); view_menu.addAction("Tam ekran", self.toggle_fullscreen, "F11"); view_menu.addAction("Ollama hazırlığını durdur", self.stop_ollama_setup)
-        voice_menu = self.menuBar().addMenu("Ses"); voice_menu.addAction("Vosk ile sesli metin", self.open_voice_to_text_dialog)
-        calendar_menu = self.menuBar().addMenu("Takvim"); calendar_menu.addAction("Takvimi aç", self.open_calendar); calendar_menu.addAction("Bugünün notlarını kontrol et", self.check_reminders)
-        qwen_menu = self.menuBar().addMenu("Qwen AI"); qwen_menu.addAction("Türkçe fine-tuning hazırlığı", self.open_finetune_dialog)
-        help_menu = self.menuBar().addMenu("Yardım"); help_menu.addAction("Klavye kısayolları", self.show_help); help_menu.addAction("Hakkında", lambda: QMessageBox.information(self, "Kadir's PDF App", "Kadir's PDF App\nYerel PDF çalışma alanı")); self.build_panel_menubar()
+        # Dil değişikliğinde menüleri temizleyip seçili dilde yeniden oluşturuyoruz.
+        self.menuBar().clear()
+        t = self.tr_text
+        file_menu = self.menuBar().addMenu(t("Dosya"))
+        file_menu.addAction(t("PDF aç"), self.open_file, "Ctrl+O")
+        file_menu.addAction(t("PDF dışa aktar"), self.export_file, "Ctrl+S")
+        file_menu.addAction(t("Yazdır"), self.print_file, "Ctrl+P")
+        file_menu.addSeparator(); file_menu.addAction(t("Çıkış"), self.close, "Alt+F4")
+        workspace_menu = self.menuBar().addMenu(t("Çalışma alanı"))
+        workspace_menu.addAction(t("Ana sayfa"), lambda: self.navigate("Ana sayfa"))
+        workspace_menu.addAction(t("Son kullanılanlar"), lambda: self.navigate("Son kullanılanlar"))
+        workspace_menu.addAction(t("Yıldızlı"), self.open_starred_documents)
+        workspace_menu.addAction(t("Açık PDF'yi yıldızla"), self.toggle_star_current)
+        workspace_menu.addAction(t("Açık PDF dosya yolunu kopyala"), self.share_current)
+        workspace_menu.addAction(t("Paylaşılanlar"), lambda: self.navigate("Paylaşılanlar"))
+        workspace_menu.addSeparator(); workspace_menu.addAction(t("Belgelerim"), lambda: self.navigate("Belgelerim")); workspace_menu.addAction(t("Tarama gelen kutusu"), lambda: self.navigate("Tarama gelen kutusu"))
+        view_menu = self.menuBar().addMenu(t("Görünüm")); theme_menu = view_menu.addMenu(t("Tema"))
+        theme_menu.addAction(t("Windows 11 siyah"), lambda: self.set_theme("dark")); theme_menu.addAction(t("Beyaz"), lambda: self.set_theme("light")); theme_menu.addAction(t("Yumuşak açık"), lambda: self.set_theme("soft"))
+        view_menu.addSeparator(); view_menu.addAction(t("Sol paneli aç/kapat"), self.toggle_sidebar); view_menu.addAction(t("Sağ paneli aç/kapat"), self.toggle_right_panel); view_menu.addAction(t("Tam ekran"), self.toggle_fullscreen, "F11"); view_menu.addAction(t("Ollama hazırlığını durdur"), self.stop_ollama_setup)
+        voice_menu = self.menuBar().addMenu(t("Ses")); voice_menu.addAction(t("Vosk ile sesli metin"), self.open_voice_to_text_dialog)
+        calendar_menu = self.menuBar().addMenu(t("Takvim")); calendar_menu.addAction(t("Takvimi aç"), self.open_calendar); calendar_menu.addAction(t("Bugünün notlarını kontrol et"), self.check_reminders)
+        qwen_menu = self.menuBar().addMenu(t("Qwen AI")); qwen_menu.addAction(t("Türkçe fine-tuning hazırlığı"), self.open_finetune_dialog)
+        language_menu = self.menuBar().addMenu(t("Dil / Language"))
+        for code, name in LANGUAGE_NAMES.items():
+            action = language_menu.addAction(name); action.setCheckable(True); action.setChecked(code == self.language); action.triggered.connect(lambda checked=False, value=code: self.set_language(value))
+        help_menu = self.menuBar().addMenu(t("Yardım")); help_menu.addAction(t("Klavye kısayolları"), self.show_help); help_menu.addAction(t("Hakkında"), lambda: QMessageBox.information(self, "Kadir's PDF App", "Kadir's PDF App\nLocal PDF workspace"))
+        self.build_panel_menubar()
 
     def start_ollama_setup(self):
         self.ollama_setup = OllamaSetupWorker(self); self.ollama_setup.status.connect(self.status_msg); self.ollama_setup.completed.connect(self.status_msg); self.ollama_setup.failed.connect(self.ollama_setup_failed); self.ollama_setup.start()
@@ -739,19 +857,20 @@ class PDFStudio(QMainWindow):
         layout.addStretch(); open_button = QPushButton("＋  İlk PDF'i aç", objectName="primary"); open_button.clicked.connect(self.open_file); layout.addWidget(open_button, 0, Qt.AlignLeft); return dashboard
 
     def build_panel_menubar(self):
-        panel_root = self.menuBar().addMenu("Çalışma paneli"); panel_menu = panel_root.addMenu("Panel")
-        panel_menu.addAction("Dosya bilgileri", lambda: self.tabs.setCurrentIndex(0))
-        panel_menu.addAction("Notlar", lambda: self.tabs.setCurrentIndex(1))
-        panel_menu.addAction("PDF metni", lambda: self.tabs.setCurrentIndex(2))
-        panel_menu.addAction("Yer imleri", lambda: self.tabs.setCurrentIndex(3))
-        editor_menu = panel_root.addMenu("Düzenle")
-        editor_menu.addAction("Metin editörü", lambda: self.tabs.setCurrentIndex(4))
-        editor_menu.addAction("Not dışa aktar", lambda: self.tabs.setCurrentIndex(5))
-        editor_menu.addAction("AI Asistan", lambda: self.tabs.setCurrentIndex(6))
-        actions = panel_root.addMenu("İşlemler")
-        actions.addAction("PDF aç", self.open_file)
-        actions.addAction("Notları sesli oku", self.read_notes)
-        actions.addAction("PDF'yi özetle", lambda: (self.tabs.setCurrentIndex(6), self.ask_ai("Bu PDF'yi kısa ve anlaşılır maddeler halinde özetle.")))
+        t = self.tr_text
+        panel_root = self.menuBar().addMenu(t("Çalışma paneli")); panel_menu = panel_root.addMenu(t("Panel"))
+        panel_menu.addAction(t("Dosya bilgileri"), lambda: self.tabs.setCurrentIndex(0))
+        panel_menu.addAction(t("Notlar"), lambda: self.tabs.setCurrentIndex(1))
+        panel_menu.addAction(t("PDF metni"), lambda: self.tabs.setCurrentIndex(2))
+        panel_menu.addAction(t("Yer imleri"), lambda: self.tabs.setCurrentIndex(3))
+        editor_menu = panel_root.addMenu(t("Düzenle"))
+        editor_menu.addAction(t("Metin editörü"), lambda: self.tabs.setCurrentIndex(4))
+        editor_menu.addAction(t("Not dışa aktar"), lambda: self.tabs.setCurrentIndex(5))
+        editor_menu.addAction(t("AI Asistan"), lambda: self.tabs.setCurrentIndex(6))
+        actions = panel_root.addMenu(t("İşlemler"))
+        actions.addAction(t("PDF aç"), self.open_file)
+        actions.addAction(t("Notları sesli oku"), self.read_notes)
+        actions.addAction(t("PDF'yi özetle"), lambda: (self.tabs.setCurrentIndex(6), self.ask_ai("Bu PDF'yi kısa ve anlaşılır maddeler halinde özetle.")))
 
     def build_tabs(self):
         info = QWidget(); il = QVBoxLayout(info); self.info_label = QLabel(); self.info_label.setWordWrap(True); il.addWidget(self.info_label); il.addStretch(); self.tabs.addTab(info, "Dosya")
@@ -913,6 +1032,7 @@ class PDFStudio(QMainWindow):
             self.vosk_model_path = state.get("vosk_model_path", bundled_vosk_model_path())
             self.autosave_enabled = bool(state.get("autosave_enabled", True))
             self.close_after_export = bool(state.get("close_after_export", False))
+            self.language = state.get("language", "tr") if state.get("language", "tr") in LANGUAGE_NAMES else "tr"
         except Exception:
             self.recent = []; self.starred = []
             self.saved_notes = ""
@@ -921,8 +1041,9 @@ class PDFStudio(QMainWindow):
             self.vosk_model_path = bundled_vosk_model_path()
             self.autosave_enabled = True
             self.close_after_export = False
+            self.language = "tr"
     def save_state(self):
-        try: STATE_FILE.write_text(json.dumps({"recent": self.recent[:12], "starred": self.starred[:100], "notes": self.notes.toPlainText(), "qwen_finetune_examples": self.qwen_finetune_examples[:1000], "qwen_system_prompt": self.qwen_system_prompt, "vosk_model_path": self.vosk_model_path, "autosave_enabled": self.autosave_enabled, "close_after_export": self.close_after_export}, ensure_ascii=False, indent=2), encoding="utf-8")
+        try: STATE_FILE.write_text(json.dumps({"recent": self.recent[:12], "starred": self.starred[:100], "notes": self.notes.toPlainText(), "qwen_finetune_examples": self.qwen_finetune_examples[:1000], "qwen_system_prompt": self.qwen_system_prompt, "vosk_model_path": self.vosk_model_path, "autosave_enabled": self.autosave_enabled, "close_after_export": self.close_after_export, "language": self.language}, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception: pass
     def save_notes(self):
         if hasattr(self, "notes"):
