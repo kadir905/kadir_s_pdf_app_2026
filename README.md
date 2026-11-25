@@ -2,25 +2,31 @@
 
 ## Arayuz galerisi
 
-Asagidaki gorseller uygulamanin temel ekranlarini ve kullanim akislarini gosterir. Gorseller README icin hazirlanmis tanitim/mockup ekranlaridir; uygulamanin gercek islevleri [pdf_studio.py](./pdf_studio.py) icinde yer alir.
+Asagidaki gorseller uygulamanin Windows ortaminda calistirilan orijinal arayuzunden alinmistir. Ekran goruntulerinde ornek bir PDF, takvim, Vosk sesli metin ve Qwen fine-tuning ekranlari gosterilir.
 
 ### PDF calisma alani
 
-Tum PDF sayfalarini dikey akista goruntuleme, sayfa onizlemeleri, anotasyon araclari, yakinlastirma ve AI paneli.
+Tum PDF sayfalarini dikey akista goruntuleme, anotasyon araclari, yakinlastirma ve sagdaki dosya bilgileri paneli.
 
-![PDF calisma alani](./docs/screenshots/pdf-workspace.png)
+![PDF calisma alani](./docs/screenshots/pdf-workspace-original.png)
 
 ### Takvim ve hatirlaticilar
 
-Takvim gorunumu, secili gun notu, saatli hatirlatici kaydi ve bildirim akisi.
+Takvim gorunumu, secili gun, haftalik satirlar, kayitli hatirlaticilar ve not ekleme/silme kontrolleri.
 
-![Takvim ve hatirlaticilar](./docs/screenshots/calendar-reminders.png)
+![Takvim ve hatirlaticilar](./docs/screenshots/calendar-original.png)
 
 ### AI, sesli metin ve seslendirme
 
-Vosk ile mikrofon kaydi, Qwen/Ollama AI paneli, metin-to-speech kontrolleri ve PDF ozet alani.
+Vosk model yolu, dinleme ve durdurma kontrolleri, Tolga ile seslendirme, PDF aktarimi ve AI/notlara aktarma secenekleri.
 
-![AI ve ses araclari](./docs/screenshots/ai-voice-tools.png)
+![Vosk ile sesli metin](./docs/screenshots/voice-to-text-original.png)
+
+### Qwen fine-tuning arayuzu
+
+Temel model, Turkce sistem talimati, kullanici/PDF baglami ve beklenen cevap alanlariyla JSONL ve Modelfile uretimi.
+
+![Qwen fine-tuning arayuzu](./docs/screenshots/fine-tuning-original.png)
 
 Kadir's PDF App, Windows üzerinde çalışan, PDF belgelerini yerel olarak açmak, incelemek, düzenlemek, notlandırmak ve dışa aktarmak için geliştirilmiş bir masaüstü uygulamasıdır. Uygulama PySide6 arayüzünü, PyMuPDF belge motorunu ve isteğe bağlı olarak Ollama/Qwen yerel yapay zekâ desteğini kullanır.
 
