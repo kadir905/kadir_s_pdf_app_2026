@@ -28,10 +28,41 @@ Temel model, Turkce sistem talimati, kullanici/PDF baglami ve beklenen cevap ala
 
 ![Qwen fine-tuning arayuzu](./docs/screenshots/fine-tuning-original.png)
 
+### Ana sayfa ve istatistikler
+
+Ana sayfa; acilan PDF sayisi, toplam sayfa, not karakteri ve cikarilan kelime sayisini kartlar halinde gosterir. Son aktivite alani, son acilan belgeyi ve yerel kayit durumunu ozetler.
+
+![Ana sayfa ve istatistikler](./docs/screenshots/dashboard-original.png)
+
+### Notlar ve seslendirme
+
+PDF acikken notlar sag panelde otomatik kaydedilir. Notlar bu ekrandan Windows uzerindeki Tolga sesiyle okunabilir veya durdurulabilir.
+
+![Notlar ve seslendirme](./docs/screenshots/notes-original.png)
+
+### Metin editoru
+
+Metin editoru; yazi tipi, boyut, kalin/italik/alti cizili bicimlendirme ve hizalama secenekleriyle PDF calisma alanindaki notlari duzenlemeye yardimci olur.
+
+![Metin editoru](./docs/screenshots/text-editor-original.png)
+
+### Not disa aktarma
+
+Notlar tek tikla PDF, Word, Excel veya TXT formatlarina aktarilabilir.
+
+![Not disa aktarma](./docs/screenshots/export-original.png)
+
+### AI asistani
+
+Qwen 2.5 modeli Ollama uzerinden yerel olarak kullanilir. PDF ozeti, belge sorulari ve not duzenleme islemleri sag paneldeki AI Asistani sekmesinden yapilir.
+
+![AI asistani](./docs/screenshots/ai-assistant-original.png)
+
 Kadir's PDF App, Windows üzerinde çalışan, PDF belgelerini yerel olarak açmak, incelemek, düzenlemek, notlandırmak ve dışa aktarmak için geliştirilmiş bir masaüstü uygulamasıdır. Uygulama PySide6 arayüzünü, PyMuPDF belge motorunu ve isteğe bağlı olarak Ollama/Qwen yerel yapay zekâ desteğini kullanır.
 
 ## İçindekiler
 
+- [Arayüz galerisi](#arayuz-galerisi)
 - [Öne çıkan özellikler](#öne-çıkan-özellikler)
 - [Gereksinimler](#gereksinimler)
 - [Kurulum](#kurulum)
@@ -618,6 +649,7 @@ pdf_uygulamasi/
 ├── kadir_pdf_logo.ico     # Windows uygulama simgesi
 ├── KadirsPDFApp.spec      # PyInstaller yapılandırması
 ├── README.md              # Proje dokümantasyonu
+├── docs/screenshots/      # Orijinal uygulama arayüzü ekran görüntüleri
 ├── build/                 # PyInstaller geçici çıktı klasörü
 └── dist/                  # Dağıtılabilir EXE çıktısı
 ```
