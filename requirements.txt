@@ -1,0 +1,20 @@
+PySide6>=6.7,<7
+PyMuPDF>=1.24,<2
+pyttsx3>=2.90,<3
+python-docx>=1.1,<2
+openpyxl>=3.1,<4
+vosk>=0.3.45,<1
+sounddevice>=0.4.6,<1
+
+# Qwen 2.5 LoRA/QLoRA fine-tuning
+# Not: torch ve bitsandbytes CUDA/işletim sistemi uyumluluğuna göre kurulmalıdır.
+# GPU ile eğitim için WSL2/Linux ortamı daha mantıkklı olur.
+torch>=2.3,<3
+transformers>=4.45,<5
+datasets>=2.20,<4
+trl>=0.20,<1
+peft>=0.12,<1
+accelerate>=0.34,<2
+bitsandbytes>=0.43,<1
+safetensors>=0.4,<1
+huggingface-hub>=0.24,<1
