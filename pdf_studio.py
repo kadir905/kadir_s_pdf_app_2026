@@ -424,8 +424,8 @@ class DoubleClickCalendar(QCalendarWidget):
     date_double_clicked = Signal(QDate)
 
     def mouseDoubleClickEvent(self, event):
-        self.date_double_clicked.emit(self.selectedDate())
         super().mouseDoubleClickEvent(event)
+        QTimer.singleShot(0, lambda: self.date_double_clicked.emit(self.selectedDate()))
 
 
 class CalendarDialog(QDialog):
@@ -568,6 +568,7 @@ class PDFStudio(QMainWindow):
     def __init__(self):
         super().__init__(); self.setWindowTitle("Kadir's PDF App"); self.resize(1480, 900); self.setMinimumSize(1150, 720)
         self.current_file = None; self.doc = None; self.page_index = 0; self.page_count = 1; self.zoom = 1.; self.recent = []; self.starred = []; self.active_tool = "select"; self.tts = None
+        self.autosave_enabled = True; self.close_after_export = False
         self.text_style = {"family": "Segoe UI", "size": 12, "bold": False, "italic": False, "underline": False, "color": "#1467d8", "align": "left"}
         self.current_theme = "dark"
         self.reminder_store = ReminderStore(); self.load_state(); self.build_ui(); self.side = self.findChild(QFrame, "side"); self.right_panel = self.findChild(QFrame, "right"); self.install_header_controls(); self.build_editor_tab(); self.build_note_export_tab(); self.build_ai_tab(); self.apply_theme(); self.build_actions(); self.update_ui(); self.show_home(); self.reminder_timer = QTimer(self); self.reminder_timer.timeout.connect(self.check_reminders); self.reminder_timer.start(30000); QTimer.singleShot(1200, self.check_reminders)
@@ -610,6 +611,7 @@ class PDFStudio(QMainWindow):
         file_menu = self.menuBar().addMenu("Dosya")
         file_menu.addAction("PDF aç", self.open_file, "Ctrl+O")
         file_menu.addAction("PDF dışa aktar", self.export_file, "Ctrl+S")
+        file_menu.addAction("Yazdır", self.print_file, "Ctrl+P")
         file_menu.addSeparator(); file_menu.addAction("Çıkış", self.close, "Alt+F4")
         workspace_menu = self.menuBar().addMenu("Çalışma alanı")
         workspace_menu.addAction("Ana sayfa", lambda: self.navigate("Ana sayfa"))
@@ -871,17 +873,23 @@ class PDFStudio(QMainWindow):
             self.qwen_finetune_examples = state.get("qwen_finetune_examples", [])
             self.qwen_system_prompt = state.get("qwen_system_prompt", "Türkçe cevap ver. PDF bağlamına sadık kal; bilgi uydurma. Cevaplarını mantıklı, açık ve gerektiğinde maddeli yaz.")
             self.vosk_model_path = state.get("vosk_model_path", bundled_vosk_model_path())
+            self.autosave_enabled = bool(state.get("autosave_enabled", True))
+            self.close_after_export = bool(state.get("close_after_export", False))
         except Exception:
             self.recent = []; self.starred = []
             self.saved_notes = ""
             self.qwen_finetune_examples = []
             self.qwen_system_prompt = "Türkçe cevap ver. PDF bağlamına sadık kal; bilgi uydurma. Cevaplarını mantıklı, açık ve gerektiğinde maddeli yaz."
             self.vosk_model_path = bundled_vosk_model_path()
+            self.autosave_enabled = True
+            self.close_after_export = False
     def save_state(self):
-        try: STATE_FILE.write_text(json.dumps({"recent": self.recent[:12], "starred": self.starred[:100], "notes": self.notes.toPlainText(), "qwen_finetune_examples": self.qwen_finetune_examples[:1000], "qwen_system_prompt": self.qwen_system_prompt, "vosk_model_path": self.vosk_model_path}, ensure_ascii=False, indent=2), encoding="utf-8")
+        try: STATE_FILE.write_text(json.dumps({"recent": self.recent[:12], "starred": self.starred[:100], "notes": self.notes.toPlainText(), "qwen_finetune_examples": self.qwen_finetune_examples[:1000], "qwen_system_prompt": self.qwen_system_prompt, "vosk_model_path": self.vosk_model_path, "autosave_enabled": self.autosave_enabled, "close_after_export": self.close_after_export}, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception: pass
     def save_notes(self):
-        if hasattr(self, "notes"): self.save_state(); self.update_dashboard()
+        if hasattr(self, "notes"):
+            if self.autosave_enabled: self.save_state()
+            self.update_dashboard()
     def open_file(self):
         path, _ = QFileDialog.getOpenFileName(self, "PDF aç", "", "PDF dosyaları (*.pdf);;Tüm dosyalar (*)")
         if path: self.load_file(Path(path))
@@ -903,7 +911,7 @@ class PDFStudio(QMainWindow):
     def load_file(self, path):
         if self.doc:
             self.doc.close()
-        self.current_file = path; self.doc = None; self.page_count = 1
+        self.current_file = path; self.doc = None; self.page_count = 1; self.canvas.annotations.clear(); self.canvas.redo_stack.clear()
         if str(path) not in self.recent: self.recent.insert(0, str(path))
         if fitz:
             try:
@@ -964,7 +972,7 @@ class PDFStudio(QMainWindow):
             path, _ = QFileDialog.getOpenFileName(self, text, str(Path.home()), "PDF dosyaları (*.pdf);;Tüm dosyalar (*)")
             if path: self.load_file(Path(path))
             return
-        if text == "Yıldızlı": QMessageBox.information(self, "Yıldızlı", "Yerel çalışma modunda henüz yıldızlı belge bulunmuyor."); return
+        if text == "Yıldızlı": self.open_starred_documents(); return
         if text == "Paylaşılanlar": QMessageBox.information(self, "Paylaşılanlar", "Yerel çalışma modunda paylaşılan belge bulunmuyor."); return
         if text == "Yardım merkezi": self.show_help(); return
         if text == "Ayarlar": self.show_settings(); return
@@ -996,10 +1004,11 @@ class PDFStudio(QMainWindow):
 
     def show_settings(self):
         dialog = QDialog(self); dialog.setWindowTitle("Ayarlar"); dialog.setMinimumWidth(360); layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("Kadir's PDF App ayarları")); autosave = QCheckBox("Notları otomatik kaydet"); autosave.setChecked(True); layout.addWidget(autosave)
-        close_after = QCheckBox("Dışa aktardıktan sonra sekmeyi kapat"); close_after.setChecked(False); layout.addWidget(close_after)
+        layout.addWidget(QLabel("Kadir's PDF App ayarları")); autosave = QCheckBox("Notları otomatik kaydet"); autosave.setChecked(self.autosave_enabled); layout.addWidget(autosave)
+        close_after = QCheckBox("Dışa aktardıktan sonra Dosya sekmesine dön"); close_after.setChecked(self.close_after_export); layout.addWidget(close_after)
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); layout.addWidget(buttons)
-        if dialog.exec() == QDialog.Accepted: self.status_msg("Ayarlar kaydedildi")
+        if dialog.exec() == QDialog.Accepted:
+            self.autosave_enabled = autosave.isChecked(); self.close_after_export = close_after.isChecked(); self.save_state(); self.status_msg("Ayarlar kaydedildi")
 
     def search_document(self):
         query = self.search.text().strip()
@@ -1021,6 +1030,7 @@ class PDFStudio(QMainWindow):
                     export_doc = fitz.open(str(self.current_file)); self.apply_annotations(export_doc); export_doc.save(str(destination)); export_doc.close()
                     if temporary_path: os.replace(str(temporary_path), str(self.current_file))
                 else: Path(path).write_bytes(self.current_file.read_bytes())
+                if self.close_after_export: self.tabs.setCurrentIndex(0)
                 self.status_msg("PDF dışa aktarıldı")
             except Exception as exc: QMessageBox.critical(self, "Dışa aktarma", str(exc))
 

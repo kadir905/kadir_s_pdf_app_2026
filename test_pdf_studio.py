@@ -30,6 +30,8 @@ class PDFStudioTests(unittest.TestCase):
         self.assertIn("Çalışma paneli", menu_names)
         self.assertIn("Görünüm", menu_names)
         self.assertIn("Yardım", menu_names)
+        file_menu = next(action.menu() for action in self.window.menuBar().actions() if action.text() == "Dosya")
+        self.assertIn("Yazdır", [action.text() for action in file_menu.actions()])
 
     def test_theme_switching_updates_stylesheet(self):
         self.window.set_theme("light")
@@ -85,6 +87,26 @@ class PDFStudioTests(unittest.TestCase):
         self.assertEqual(len(self.window.canvas.annotations), 1)
         self.window.undo_annotation(); self.assertEqual(len(self.window.canvas.annotations), 0)
         self.window.redo_annotation(); self.assertEqual(len(self.window.canvas.annotations), 1)
+
+    def test_loading_a_new_pdf_clears_previous_annotations(self):
+        if pdf_studio.fitz is None:
+            self.skipTest("PyMuPDF kurulu değil")
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "new-document.pdf"
+            document = pdf_studio.fitz.open(); document.new_page(); document.save(str(source)); document.close()
+            self.window.canvas.add_text(QPoint(20, 20), "Eski belge notu")
+            self.assertTrue(self.window.canvas.annotations)
+            self.window.load_file(source)
+            self.assertEqual(self.window.canvas.annotations, [])
+            self.window.doc.close()
+            self.window.doc = None
+
+    def test_settings_are_persisted_in_state(self):
+        self.window.autosave_enabled = False
+        self.window.close_after_export = True
+        self.window.save_state()
+        self.assertIn('"autosave_enabled": false', pdf_studio.STATE_FILE.read_text(encoding="utf-8"))
+        self.assertIn('"close_after_export": true', pdf_studio.STATE_FILE.read_text(encoding="utf-8"))
 
     def test_pdf_search_finds_matching_text(self):
         if pdf_studio.fitz is None:

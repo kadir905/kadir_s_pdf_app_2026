@@ -93,6 +93,8 @@ Kadir's PDF App, Windows üzerinde çalışan, PDF belgelerini yerel olarak açm
 - Belge içinde metin arama.
 - PDF’den metin çıkarma ve çıkarılan metni panoya kopyalama.
 - Son kullanılan ve yıldızlanan belgeleri yerel olarak hatırlama.
+- Dosya menüsünden PDF yazdırma (`Ctrl+P`).
+- Yeni PDF açıldığında önceki belgenin anotasyonlarını temizleme.
 
 ### Anotasyon araçları
 
@@ -115,6 +117,7 @@ Metin anotasyonlarında yazı tipi, boyut, kalın, italik, altı çizili, hizala
 - Koyu, beyaz ve yumuşak açık tema seçenekleri.
 - Sol ve sağ panelleri bağımsız olarak açıp kapatma.
 - Tam ekran görünümü.
+- Ayarlar penceresinden not otomatik kaydı ve dışa aktarma sonrası Dosya sekmesine dönüş tercihi.
 
 ## Gereksinimler
 
@@ -587,6 +590,7 @@ Uygulama içindeki fine-tuning ekranında belirlenen sistem talimatı ve en fazl
 | `Ctrl+O` | PDF aç |
 | `Ctrl+F` | Belge arama alanına odaklan |
 | `Ctrl+S` | PDF dışa aktar |
+| `Ctrl+P` | PDF yazdır |
 | `Ctrl+Z` | Anotasyonu geri al |
 | `Ctrl+Y` | Anotasyonu yinele |
 | `Escape` | Seçim aracına dön |
