@@ -644,6 +644,10 @@ pyinstaller --noconfirm --onefile --windowed `
 
 Oluşan dosya genellikle `dist\KadirsPDFApp.exe` konumunda bulunur. PyInstaller ile oluşturulan EXE, Python paketlerini içerir; Ollama ve Qwen modeli ise ayrı kurulmalıdır.
 
+### Hazır Windows sürümü
+
+ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.0.0 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.0.0) indirebilirsiniz. `KadirsPDFApp.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
+
 ## Proje yapısı
 
 ```text
