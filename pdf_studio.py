@@ -47,6 +47,23 @@ STATE_FILE = USER_DATA_DIR / "pdf_studio_state.json"
 VOSK_MODEL_NAME = "vosk-model-small-tr-0.3"
 
 
+def stop_thread(thread, stop_callback=None, timeout=3000):
+    """Çalışan Qt iş parçacığını güvenli biçimde durdurur ve bekler."""
+    if not thread or not thread.isRunning():
+        return True
+    if stop_callback:
+        try:
+            stop_callback()
+        except Exception:
+            pass
+    thread.requestInterruption()
+    if thread.wait(timeout):
+        return True
+    # Ağ veya ses sürücüsü kapanışı geciktirirse nesne yok edilmeden önce sonlandır.
+    thread.terminate()
+    return thread.wait(1000)
+
+
 def bundled_vosk_model_path():
     """Find the bundled Turkish model in the app root or models subfolder."""
     candidates = (APP_DIR / VOSK_MODEL_NAME, APP_DIR / "models" / VOSK_MODEL_NAME)
@@ -243,7 +260,7 @@ class VoiceToTextDialog(QDialog):
         current = self.output.toPlainText().strip(); self.output.setPlainText(f"{current} {text}".strip()); cursor = self.output.textCursor(); cursor.movePosition(QTextCursor.End); self.output.setTextCursor(cursor)
 
     def stop_listening(self):
-        if self.worker and self.worker.isRunning(): self.status.setText("Kayıt durduruluyor…"); self.worker.stop(); self.worker.wait(2500)
+        if self.worker and self.worker.isRunning(): self.status.setText("Kayıt durduruluyor…"); stop_thread(self.worker, self.worker.stop, 2500)
         self.start_button.setEnabled(True); self.stop_button.setEnabled(False)
 
     def voice_finished(self):
@@ -298,7 +315,7 @@ class VoiceToTextDialog(QDialog):
 
     def closeEvent(self, event):
         self.stop_listening()
-        if hasattr(self, "speech_worker") and self.speech_worker.isRunning(): self.speech_worker.stop(); self.speech_worker.wait(1000)
+        stop_thread(getattr(self, "speech_worker", None), getattr(getattr(self, "speech_worker", None), "stop", None), 2000)
         super().closeEvent(event)
 
 
@@ -959,7 +976,8 @@ class PDFStudio(QMainWindow):
                 rect = page.rect
                 max_pixels = 20_000_000
                 safe_scale = min(requested, math.sqrt(max_pixels / max(1.0, rect.width * rect.height)))
-                raw = page.get_pixmap(matrix=fitz.Matrix(safe_scale, safe_scale), alpha=False, annots=True)
+                # RGB renk uzayı, gri tonlu PDF'lerde metnin QImage içinde kaybolmasını önler.
+                raw = page.get_pixmap(matrix=fitz.Matrix(safe_scale, safe_scale), colorspace=fitz.csRGB, alpha=False, annots=True)
                 img = QImage(raw.samples, raw.width, raw.height, raw.stride, QImage.Format_RGB888).copy()
                 pixmaps.append(QPixmap.fromImage(img))
         self.canvas.current_page = self.page_index
@@ -1081,13 +1099,13 @@ class PDFStudio(QMainWindow):
         if hasattr(self, "tts_worker") and self.tts_worker.isRunning(): self.tts_worker.stop(); self.tts_worker.wait(500)
         self.tts_worker = SpeechWorker(text, self); self.tts_worker.status.connect(self.status_msg); self.tts_worker.completed.connect(lambda: self.status_msg("Not seslendirmesi tamamlandı")); self.tts_worker.failed.connect(self.status_msg); self.tts_worker.start(); self.status_msg("Notlar arka planda seslendiriliyor")
     def stop_speech(self):
-        if hasattr(self, "tts_worker") and self.tts_worker.isRunning(): self.tts_worker.stop(); self.tts_worker.requestInterruption(); self.status_msg("Seslendirme durduruldu")
+        if hasattr(self, "tts_worker") and self.tts_worker.isRunning(): stop_thread(self.tts_worker, self.tts_worker.stop, 1500); self.status_msg("Seslendirme durduruldu")
 
     def closeEvent(self, event):
         if getattr(self, "doc", None): self.doc.close(); self.doc = None
-        if hasattr(self, "tts_worker") and self.tts_worker.isRunning(): self.tts_worker.stop(); self.tts_worker.wait(1000)
-        if hasattr(self, "ai_worker") and self.ai_worker.isRunning(): self.ai_worker.requestInterruption(); self.ai_worker.wait(1000)
-        if hasattr(self, "ollama_setup") and self.ollama_setup.isRunning(): self.ollama_setup.stop(); self.ollama_setup.wait(1000)
+        stop_thread(getattr(self, "tts_worker", None), getattr(getattr(self, "tts_worker", None), "stop", None), 2000)
+        stop_thread(getattr(self, "ai_worker", None), None, 2000)
+        stop_thread(getattr(self, "ollama_setup", None), getattr(getattr(self, "ollama_setup", None), "stop", None), 2000)
         if hasattr(self, "reminder_timer"): self.reminder_timer.stop()
         event.accept()
 

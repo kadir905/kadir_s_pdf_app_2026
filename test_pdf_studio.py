@@ -160,6 +160,20 @@ class PDFStudioTests(unittest.TestCase):
             self.window.doc.close()
             self.window.doc = None
 
+    def test_pdf_page_is_rendered_to_rgb_pixmap(self):
+        if pdf_studio.fitz is None:
+            self.skipTest("PyMuPDF kurulu değil")
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "rendered-text.pdf"
+            document = pdf_studio.fitz.open(); page = document.new_page()
+            page.insert_text((40, 50), "Görüntülenecek metin", color=(0, 0, 0))
+            document.save(str(source)); document.close()
+            self.window.load_file(source)
+            self.assertTrue(self.window.canvas.pixmaps)
+            self.assertFalse(self.window.canvas.pixmaps[0].isNull())
+            self.assertGreater(self.window.canvas.pixmaps[0].width(), 0)
+            self.window.doc.close(); self.window.doc = None
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
