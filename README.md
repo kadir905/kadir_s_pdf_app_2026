@@ -740,6 +740,23 @@ Bu proje yerel PDF çalışma alanı olarak geliştirilmiştir. Üretim dağıt�
 
 Uygulama menüsündeki **Dil / Language** bölümünden **Türkçe**, **English** veya **Español** seçilebilir. Seçim anında menüler, sekmeler, gezinme düğmeleri, dashboard kartları ve yaygın işlem metinleri güncellenir. Seçilen dil yerel durum dosyasına kaydedilir ve uygulama yeniden açıldığında korunur. PDF içeriği, dosya adları ve kullanıcı notları değiştirilmez.
 
+## Güvenlik ve doğrulama
+
+Uygulama kullanıcı ve Ollama kaynaklı metinleri arayüzde HTML olarak güvenli biçimde kaçışlar; böylece AI sohbet alanında HTML/JavaScript enjeksiyonu engellenir. Ollama ve Vosk işlemleri sabit komut argümanlarıyla, kabuk açılmadan çalıştırılır. PDF dışa aktarma ve durum dosyası işlemleri yalnızca kullanıcının seçtiği yerel yolları kullanır.
+
+Kod değişikliklerinden sonra aşağıdaki kontroller uygulanır:
+
+```powershell
+$env:QT_QPA_PLATFORM = "offscreen"
+$env:PDF_STUDIO_TEST_MODE = "1"
+py -m unittest discover -v
+py -m compileall -q pdf_studio.py test_pdf_studio.py
+py -m pip check
+py -m pip_audit -r requirements.txt
+```
+
+Son güvenlik taramasında bilinen bağımlılık açığı bulunmamıştır. GPU fine-tuning paketleri yalnızca eğitim yapılacak ortamda kurulmalı ve güvenilir kaynaklardan yüklenmelidir.
+
 ## English
 
 Kadir's PDF App is a local Windows desktop application for opening, reading, annotating, exporting and printing PDF documents. The interface can be switched at runtime between Turkish, English and Spanish from the **Language / Dil** menu. The selected language is saved locally and restored on the next launch.

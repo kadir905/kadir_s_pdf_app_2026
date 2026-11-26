@@ -93,6 +93,25 @@ class PDFStudioTests(unittest.TestCase):
         self.assertNotIn("<script>", rendered)
         self.assertIn("&lt;script&gt;", rendered)
 
+    def test_ai_question_and_error_are_html_escaped(self):
+        self.window.ai_prompt.setText("<img src=x onerror=alert(1)>")
+        self.window.ai_chat.append(f"<b>Sen:</b> {pdf_studio.escape(self.window.ai_prompt.text())}")
+        self.window.ai_failed("<script>alert('error')</script>")
+        rendered = self.window.ai_chat.toHtml()
+        self.assertNotIn("<img", rendered)
+        self.assertNotIn("<script>", rendered)
+        self.assertIn("&lt;script&gt;", rendered)
+
+    def test_language_switching_updates_and_persists(self):
+        self.window.set_language("en")
+        self.assertEqual(self.window.menuBar().actions()[0].text(), "File")
+        self.window.set_language("es")
+        self.assertEqual(self.window.menuBar().actions()[0].text(), "Archivo")
+        self.window.set_language("tr")
+        self.window.save_state()
+        state = pdf_studio.json.loads(pdf_studio.STATE_FILE.read_text(encoding="utf-8"))
+        self.assertEqual(state["language"], "tr")
+
     def test_pdf_notes_export(self):
         if pdf_studio.fitz is None:
             self.skipTest("PyMuPDF kurulu değil")

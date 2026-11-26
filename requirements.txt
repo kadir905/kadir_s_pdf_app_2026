@@ -10,11 +10,12 @@ sounddevice>=0.4.6,<1
 # Not: torch ve bitsandbytes CUDA/işletim sistemi uyumluluğuna göre kurulmalıdır.
 # GPU ile eğitim için WSL2/Linux ortamı daha mantıkklı olur.
 torch>=2.3,<3
-transformers>=4.45,<5
-datasets>=2.20,<4
+transformers>=5.10.0,<6
+datasets>=5.0.1,<6
 trl>=0.20,<1
 peft>=0.12,<1
 accelerate>=0.34,<2
 bitsandbytes>=0.43,<1
 safetensors>=0.4,<1
-huggingface-hub>=0.24,<1
+huggingface-hub>=1.31,<3
+fsspec>=2026.6.0,<2027

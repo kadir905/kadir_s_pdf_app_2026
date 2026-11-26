@@ -798,7 +798,9 @@ class PDFStudio(QMainWindow):
         if hasattr(self, "ollama_setup") and self.ollama_setup.isRunning(): self.ollama_setup.stop(); self.status_msg("Ollama hazırlığı durduruluyor…")
 
     def ollama_setup_failed(self, message):
-        self.status_msg(message); self.ai_chat.append(f"<span style='color:#d96b6b'><b>Ollama:</b> {message}</span>")
+        # Ollama veya işletim sistemi kaynaklı mesajlar HTML olarak yorumlanmamalı.
+        safe_message = escape(str(message))
+        self.status_msg(str(message)); self.ai_chat.append(f"<span style='color:#d96b6b'><b>Ollama:</b> {safe_message}</span>")
 
     def set_theme(self, theme):
         self.current_theme = theme
@@ -919,7 +921,7 @@ class PDFStudio(QMainWindow):
         question = preset or self.ai_prompt.text().strip()
         if not question: self.status_msg("AI asistanına bir soru yazın"); return
         if hasattr(self, "ai_worker") and self.ai_worker.isRunning(): self.status_msg("Önceki AI yanıtı hazırlanıyor"); return
-        model = self.ai_model.text().strip() or "qwen2.5:7b"; self.ai_prompt.clear(); self.ai_chat.append(f"<b>Sen:</b> {question}"); self.ai_chat.append("<i>Qwen düşünüyor…</i>"); self.status_msg("Ollama Qwen yanıtı hazırlanıyor")
+        model = self.ai_model.text().strip() or "qwen2.5:7b"; self.ai_prompt.clear(); self.ai_chat.append(f"<b>Sen:</b> {escape(question)}"); self.ai_chat.append("<i>Qwen düşünüyor…</i>"); self.status_msg("Ollama Qwen yanıtı hazırlanıyor")
         system_prompt = getattr(self, "qwen_system_prompt", "Türkçe cevap ver. PDF bağlamına sadık kal; bilgi uydurma.")
         examples = "\n\n".join(f"ÖRNEK KULLANICI: {item.get('user', '')[:1200]}\nÖRNEK ASİSTAN: {item.get('assistant', '')[:1200]}" for item in getattr(self, "qwen_finetune_examples", [])[:8])
         prompt = f"{system_prompt}\n\nSen Kadir's PDF App içindeki Türkçe belge asistanısın. Yanıtlarını net, mantıklı ve kısa ver.\n\n{self.ai_context()}\n\n{examples}\n\nSORU:\n{question}"
@@ -929,7 +931,7 @@ class PDFStudio(QMainWindow):
         safe_response = escape(response).replace("\n", "<br>"); self.ai_chat.append(f"<b>Qwen:</b> {safe_response}"); self.status_msg("Qwen yanıtı hazır")
 
     def ai_failed(self, message):
-        self.ai_chat.append(f"<span style='color:#d96b6b'><b>AI:</b> {escape(message)}</span>"); self.status_msg("AI bağlantısı kurulamadı")
+        self.ai_chat.append(f"<span style='color:#d96b6b'><b>AI:</b> {escape(str(message))}</span>"); self.status_msg("AI bağlantısı kurulamadı")
 
     def style_button(self, text, slot, tip):
         button = QPushButton(text); button.setCheckable(text in ("B", "I", "U")); button.setToolTip(tip); button.clicked.connect(slot); return button
