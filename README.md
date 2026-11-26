@@ -766,7 +766,7 @@ py -m pip install -r requirements.txt
 py pdf_studio.py
 ```
 
-For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.0.0 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.0.0).
+For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.1.0 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.1.0).
 
 ### English EXE build
 
