@@ -55,6 +55,21 @@ class PDFStudioTests(unittest.TestCase):
             self.assertIn("Yeni", extracted); self.assertNotIn("Eski", extracted)
             self.assertEqual(tuple(dialog.words_by_page[0][0][:4]), original_rect)
 
+    def test_pdf_text_editor_reads_clicked_word_font_style(self):
+        if pdf_studio.fitz is None:
+            self.skipTest("PyMuPDF kurulu değil")
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "styled.pdf"
+            document = pdf_studio.fitz.open(); page = document.new_page()
+            page.insert_text((40, 70), "Özel font", fontname="times-bold", fontsize=18, color=(0.8, 0.1, 0.1))
+            document.save(str(source)); document.close()
+            dialog = pdf_studio.PDFTextEditorDialog(self.window, source)
+            style = dialog.word_styles_by_page[0][0]
+            self.assertIn("Times", style["font"])
+            self.assertGreater(style["size"], 17)
+            self.assertNotEqual(style["color"], 0)
+            dialog.close()
+
     def test_voice_dialog_has_printer_output_control(self):
         dialog = pdf_studio.VoiceToTextDialog(self.window)
         self.assertTrue(any(button.text() == "Yazdır" for button in dialog.findChildren(pdf_studio.QPushButton)))

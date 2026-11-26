@@ -22,6 +22,7 @@ PDF_RENDER_DPI = 300
 PDF_POINTS_PER_INCH = 72
 PDF_BASE_SCALE = PDF_RENDER_DPI / PDF_POINTS_PER_INCH
 PDF_MAX_RENDER_PIXELS = 48_000_000
+APP_NAME = "AstroPDF Studio"
 
 try:
     import pymupdf as fitz
@@ -598,7 +599,7 @@ class AppLogo(QWidget):
         painter.setPen(QPen(QColor("#91c1ff"), 2)); painter.setBrush(Qt.NoBrush); painter.drawLine(12, 12, 12, 30); painter.drawLine(12, 12, 27, 12); painter.drawLine(12, 21, 24, 21); painter.drawLine(12, 30, 27, 30)
         painter.setBrush(QColor("#a882ff")); painter.setPen(Qt.NoPen); painter.drawEllipse(QRectF(25, 7, 9, 9))
         if not self.compact:
-            painter.setPen(QColor("#eef3f9")); painter.setFont(QFont("Segoe UI", 13, QFont.Bold)); painter.drawText(48, 26, "Kadir's PDF App"); painter.setPen(QColor("#8f9aaa")); painter.setFont(QFont("Segoe UI", 8)); painter.drawText(49, 42, "PDF DOCUMENT WORKSPACE")
+            painter.setPen(QColor("#eef3f9")); painter.setFont(QFont("Segoe UI", 13, QFont.Bold)); painter.drawText(48, 26, APP_NAME); painter.setPen(QColor("#8f9aaa")); painter.setFont(QFont("Segoe UI", 8)); painter.drawText(49, 42, "PDF DOCUMENT WORKSPACE")
 
 
 class PageCanvas(QWidget):
@@ -645,7 +646,7 @@ class PageCanvas(QWidget):
     def paintEvent(self, event):
         p = QPainter(self); p.fillRect(self.rect(), QColor("#0b1018")); rect = self.page_rect()
         if not self.pixmaps and rect.isNull():
-            p.setPen(QColor("#f4f7fb")); p.setFont(QFont("Segoe UI", 24, QFont.Bold)); p.drawText(self.rect(), Qt.AlignCenter, "Kadir's PDF App\n\nBir PDF açarak başlayın")
+            p.setPen(QColor("#f4f7fb")); p.setFont(QFont("Segoe UI", 24, QFont.Bold)); p.drawText(self.rect(), Qt.AlignCenter, f"{APP_NAME}\n\nBir PDF açarak başlayın")
             p.setPen(QColor("#8995a6")); p.setFont(QFont("Segoe UI", 10)); p.drawText(self.rect().adjusted(0, 100, 0, 0), Qt.AlignCenter, "Ctrl+O ile dosya açabilirsiniz."); return
         for page_index, (pixmap, page_rect) in enumerate(zip(self.pixmaps, self.page_rects)):
             p.fillRect(page_rect.adjusted(-8, -8, 8, 8), QColor("#05070b")); p.drawPixmap(page_rect.topLeft().toPoint(), pixmap)
@@ -700,12 +701,16 @@ class PdfTextEditCanvas(QWidget):
         self.pixmap = QPixmap()
         self.words = []
         self.word_rects = []
+        self.word_styles = []
+        self.render_scale = 1.0
         self.replacements = {}
         self.setMinimumSize(700, 650)
 
-    def set_page(self, pixmap, words, scale):
+    def set_page(self, pixmap, words, scale, styles=None):
         self.pixmap = pixmap
         self.words = words
+        self.render_scale = scale
+        self.word_styles = styles or []
         self.word_rects = [QRectF(float(word[0]) * scale, float(word[1]) * scale, (float(word[2]) - float(word[0])) * scale, (float(word[3]) - float(word[1])) * scale) for word in words]
         self.setFixedSize(max(700, pixmap.width() + 40), max(650, pixmap.height() + 40))
         self.update()
@@ -729,7 +734,12 @@ class PdfTextEditCanvas(QWidget):
                 continue
             rect = self.word_rects[index].translated(self.page_offset)
             painter.fillRect(rect.adjusted(-1, -1, 1, 1), QColor("white"))
-            painter.setPen(QColor("black")); painter.setFont(QFont("Segoe UI", max(7, int(rect.height() * 0.72))))
+            style = self.word_styles[index] if index < len(self.word_styles) else {}
+            font = QFont(str(style.get("font", "Arial")))
+            flags = int(style.get("flags", 0)); font.setBold(bool(flags & 16)); font.setItalic(bool(flags & 2))
+            font.setPixelSize(max(7, int(float(style.get("size", rect.height() / max(1.0, self.render_scale))) * self.render_scale * 0.92)))
+            color_value = int(style.get("color", 0)); text_color = QColor((color_value >> 16) & 255, (color_value >> 8) & 255, color_value & 255)
+            painter.setPen(text_color); painter.setFont(font)
             painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, replacement)
 
     def mousePressEvent(self, event):
@@ -754,6 +764,7 @@ class PDFTextEditorDialog(QDialog):
         # kalitesini kullanır; böylece düzenlenecek kelimeler piksellenmez.
         self.scale = PDF_BASE_SCALE
         self.words_by_page = []
+        self.word_styles_by_page = []
         self.edits = {}
         self.setWindowTitle("PDF metin dÃ¼zenleyici")
         self.resize(1000, 800)
@@ -789,6 +800,7 @@ class PDFTextEditorDialog(QDialog):
             self.source_path = Path(path)
             self.doc = fitz.open(str(self.source_path))
             self.words_by_page = [page.get_text("words") for page in self.doc]
+            self.word_styles_by_page = [self._extract_word_styles(page, words) for page, words in zip(self.doc, self.words_by_page)]
             self.edits.clear(); self.page_index = 0; self.page_spin.setRange(1, max(1, len(self.doc))); self.page_spin.setValue(1); self.page_label.setText(f"/ {len(self.doc)}")
             self.show_page(1)
             self.status.setText("DÃ¼zenlemek istediÄŸiniz kelimenin Ã¼zerine bir kez tÄ±klayÄ±n.")
@@ -802,8 +814,28 @@ class PDFTextEditorDialog(QDialog):
         safe_scale = min(self.scale, math.sqrt(PDF_MAX_RENDER_PIXELS / max(1.0, page.rect.width * page.rect.height)))
         pixmap_data = page.get_pixmap(matrix=fitz.Matrix(safe_scale, safe_scale), colorspace=fitz.csRGB, alpha=False)
         image = QImage(pixmap_data.samples, pixmap_data.width, pixmap_data.height, pixmap_data.stride, QImage.Format_RGB888).copy()
-        self.canvas.set_page(QPixmap.fromImage(image), self.words_by_page[self.page_index], safe_scale)
+        self.canvas.set_page(QPixmap.fromImage(image), self.words_by_page[self.page_index], safe_scale, self.word_styles_by_page[self.page_index])
         self.canvas.set_replacements(self.edits.get(self.page_index, {}))
+
+    def _extract_word_styles(self, page, words):
+        """PDF span bilgilerini kelime koordinatlarıyla eşleştirir."""
+        spans = []
+        for block in page.get_text("dict").get("blocks", []):
+            for line in block.get("lines", []):
+                spans.extend(line.get("spans", []))
+        styles = []
+        for word in words:
+            rect = fitz.Rect(*word[:4]); center = rect.tl + (rect.br - rect.tl) * 0.5
+            span = next((item for item in spans if fitz.Rect(item["bbox"]).contains(center)), None)
+            if span is None:
+                span = {"font": "Helvetica", "size": max(4.0, rect.height * 0.72), "color": 0, "flags": 0}
+            styles.append({
+                "font": span.get("font", "Helvetica"),
+                "size": float(span.get("size", max(4.0, rect.height * 0.72))),
+                "color": int(span.get("color", 0)),
+                "flags": int(span.get("flags", 0)),
+            })
+        return styles
 
     def edit_word(self, word_index):
         if not self.doc:
@@ -818,19 +850,38 @@ class PDFTextEditorDialog(QDialog):
                 self.canvas.set_replacements(self.edits[self.page_index])
                 self.status.setText(f"Sayfa {self.page_index + 1}: '{word[4]}' metni dÃ¼zenlendi. Kaydetmek iÃ§in Yeni PDF olarak kaydet dÃ¼ÄŸmesine basÄ±n.")
 
-    def _font_file(self):
-        for candidate in (Path("C:/Windows/Fonts/segoeui.ttf"), Path("C:/Windows/Fonts/arial.ttf")):
-            if candidate.is_file():
-                return str(candidate)
+    def _font_file_for_style(self, style):
+        """PDF font adını Windows'taki mümkün olan en yakın font dosyasına bağlar."""
+        name = str(style.get("font", "")).lower().replace(" ", "")
+        name = name.split("+")[-1]
+        bold = bool(style.get("flags", 0) & 16)
+        italic = bool(style.get("flags", 0) & 2)
+        candidates = []
+        if "times" in name or "serif" in name:
+            candidates = ["timesbd italic.ttf" if bold and italic else "timesbd.ttf" if bold else "timesi.ttf" if italic else "times.ttf"]
+        elif "courier" in name or "mono" in name:
+            candidates = ["courbi.ttf" if bold and italic else "courbd.ttf" if bold else "couri.ttf" if italic else "cour.ttf"]
+        elif "calibri" in name:
+            candidates = ["calibriz.ttf" if bold and italic else "calibrib.ttf" if bold else "calibrii.ttf" if italic else "calibri.ttf"]
+        elif "segoe" in name:
+            candidates = ["segoeuiz.ttf" if bold and italic else "segoeuib.ttf" if bold else "segoeuii.ttf" if italic else "segoeui.ttf"]
+        else:
+            candidates = ["arialbi.ttf" if bold and italic else "arialbd.ttf" if bold else "ariali.ttf" if italic else "arial.ttf"]
+        for candidate in candidates:
+            path = Path("C:/Windows/Fonts") / candidate
+            if path.is_file():
+                return str(path)
         return None
 
-    def _insert_replacement(self, page, rect, text):
-        font_file = self._font_file()
+    def _insert_replacement(self, page, rect, text, style=None):
+        style = style or {}
+        font_file = self._font_file_for_style(style)
         font = fitz.Font(fontfile=font_file) if font_file else fitz.Font("helv")
-        size = max(4.0, rect.height * 0.78)
+        size = max(4.0, min(float(style.get("size", rect.height * 0.78)), rect.height * 1.05))
         while size > 4 and font.text_length(text, fontsize=size) > rect.width * 0.96:
             size -= 0.5
-        kwargs = {"fontsize": size, "fontname": "helv", "color": (0, 0, 0), "align": 0}
+        color_value = int(style.get("color", 0)); color = ((color_value >> 16 & 255) / 255, (color_value >> 8 & 255) / 255, (color_value & 255) / 255)
+        kwargs = {"fontsize": size, "fontname": "helv", "color": color, "align": 0}
         if font_file:
             kwargs["fontfile"] = font_file
         page.insert_textbox(rect, text, **kwargs)
@@ -848,7 +899,8 @@ class PDFTextEditorDialog(QDialog):
             page.apply_redactions()
             for word_index, replacement in page_edits.items():
                 word = self.words_by_page[page_index][word_index]
-                self._insert_replacement(page, fitz.Rect(*word[:4]), replacement)
+                style = self.word_styles_by_page[page_index][word_index] if page_index < len(self.word_styles_by_page) else {}
+                self._insert_replacement(page, fitz.Rect(*word[:4]), replacement, style)
         document.save(str(output_path), garbage=4, deflate=True)
         document.close()
         # Kaydedilen dosyayÄ± yeniden okuyarak metnin gerÃ§ekten PDF katmanÄ±na yazÄ±ldÄ±ÄŸÄ±nÄ± doÄŸrula.
@@ -1037,7 +1089,7 @@ class GoogleDriveSyncDialog(QDialog):
 
 class PDFStudio(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle("Kadir's PDF App"); self.resize(1480, 900); self.setMinimumSize(1150, 720)
+        super().__init__(); self.setWindowTitle(APP_NAME); self.resize(1480, 900); self.setMinimumSize(1150, 720)
         self.language = "tr"
         self.current_file = None; self.doc = None; self.page_index = 0; self.page_count = 1; self.zoom = 1.; self.recent = []; self.starred = []; self.active_tool = "select"; self.tts = None
         self.autosave_enabled = True; self.close_after_export = False
@@ -1088,10 +1140,10 @@ class PDFStudio(QMainWindow):
         header = self.findChild(QFrame, "header")
         if not header: return
         layout = header.layout(); self.sidebar_toggle = QPushButton("☰"); self.sidebar_toggle.setToolTip("Sol menüyü aç/kapat"); self.sidebar_toggle.clicked.connect(self.toggle_sidebar); layout.insertWidget(0, self.sidebar_toggle)
-        logo_path = APP_DIR / "kadir_pdf_logo.png"; self.logo_widget = QLabel()
-        if logo_path.exists(): self.logo_widget.setPixmap(QPixmap(str(logo_path)).scaled(185, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        else: self.logo_widget.setText("Kadir's PDF App")
-        self.logo_widget.setToolTip("Kadir's PDF App"); layout.insertWidget(1, self.logo_widget)
+        # Eski görseldeki marka adının kalmaması için başlıkta yeni adı taşıyan
+        # vektör logoyu kullanıyoruz; EXE simgesi yine ICO dosyasından gelir.
+        self.logo_widget = AppLogo(compact=False)
+        self.logo_widget.setToolTip(APP_NAME); layout.insertWidget(1, self.logo_widget)
         self.right_toggle = QPushButton("▣"); self.right_toggle.setToolTip("Sağ paneli aç/kapat"); self.right_toggle.clicked.connect(self.toggle_right_panel); layout.addWidget(self.right_toggle)
 
     def toggle_sidebar(self):
@@ -1145,7 +1197,7 @@ class PDFStudio(QMainWindow):
         language_menu = self.menuBar().addMenu(t("Dil / Language"))
         for code, name in LANGUAGE_NAMES.items():
             action = language_menu.addAction(name); action.setCheckable(True); action.setChecked(code == self.language); action.triggered.connect(lambda checked=False, value=code: self.set_language(value))
-        help_menu = self.menuBar().addMenu(t("Yardım")); help_menu.addAction(t("Klavye kısayolları"), self.show_help); help_menu.addAction(t("Hakkında"), lambda: QMessageBox.information(self, "Kadir's PDF App", "Kadir's PDF App\nLocal PDF workspace"))
+        help_menu = self.menuBar().addMenu(t("Yardım")); help_menu.addAction(t("Klavye kısayolları"), self.show_help); help_menu.addAction(t("Hakkında"), self.show_about)
         self.build_panel_menubar()
 
     def start_ollama_setup(self):
@@ -1210,7 +1262,7 @@ class PDFStudio(QMainWindow):
     def build_dashboard(self):
         dashboard = QWidget(); layout = QVBoxLayout(dashboard); layout.setContentsMargins(18, 18, 18, 12)
         welcome = QLabel("Genel istatistikler"); welcome.setStyleSheet("font-size:22pt;font-weight:700;"); layout.addWidget(welcome)
-        subtitle = QLabel("Kadir's PDF App çalışma alanınıza genel bakış", objectName="muted"); layout.addWidget(subtitle); layout.addSpacing(18)
+        subtitle = QLabel(f"{APP_NAME} çalışma alanınıza genel bakış", objectName="muted"); layout.addWidget(subtitle); layout.addSpacing(18)
         cards = QHBoxLayout(); self.stat_cards = {}
         for key, title in (("files", "Açılan PDF"), ("pages", "Toplam sayfa"), ("notes", "Not karakteri"), ("words", "Çıkarılan kelime")):
             card = QFrame(); card.setStyleSheet("QFrame{background:#20283b;border:0;border-radius:12px} QLabel{border:0;background:transparent}"); box = QVBoxLayout(card); label = QLabel(title, objectName="muted"); label.setStyleSheet("border:0;background:transparent"); value = QLabel("0"); value.setStyleSheet("font-size:22pt;font-weight:700;color:#a79cff;border:0;background:transparent"); box.addWidget(label); box.addWidget(value); self.stat_cards[key] = value; cards.addWidget(card)
@@ -1281,7 +1333,7 @@ class PDFStudio(QMainWindow):
         model = self.ai_model.text().strip() or "qwen2.5:7b"; self.ai_prompt.clear(); self.ai_chat.append(f"<b>Sen:</b> {escape(question)}"); self.ai_chat.append("<i>Qwen düşünüyor…</i>"); self.status_msg("Ollama Qwen yanıtı hazırlanıyor")
         system_prompt = getattr(self, "qwen_system_prompt", "Türkçe cevap ver. PDF bağlamına sadık kal; bilgi uydurma.")
         examples = "\n\n".join(f"ÖRNEK KULLANICI: {item.get('user', '')[:1200]}\nÖRNEK ASİSTAN: {item.get('assistant', '')[:1200]}" for item in getattr(self, "qwen_finetune_examples", [])[:8])
-        prompt = f"{system_prompt}\n\nSen Kadir's PDF App içindeki Türkçe belge asistanısın. Yanıtlarını net, mantıklı ve kısa ver.\n\n{self.ai_context()}\n\n{examples}\n\nSORU:\n{question}"
+        prompt = f"{system_prompt}\n\nSen {APP_NAME} içindeki Türkçe belge asistanısın. Yanıtlarını net, mantıklı ve kısa ver.\n\n{self.ai_context()}\n\n{examples}\n\nSORU:\n{question}"
         self.ai_worker = OllamaWorker(model, prompt, self); self.ai_worker.completed.connect(self.ai_completed); self.ai_worker.failed.connect(self.ai_failed); self.ai_worker.start()
 
     def ai_completed(self, response):
@@ -1351,14 +1403,14 @@ class PDFStudio(QMainWindow):
 
     def write_notes_docx(self, path, text):
         from docx import Document
-        document = Document(); document.add_heading("Kadir's PDF App Notları", 0)
+        document = Document(); document.add_heading(f"{APP_NAME} Notları", 0)
         for paragraph in text.splitlines() or [""]:
             document.add_paragraph(paragraph)
         document.save(path)
 
     def write_notes_xlsx(self, path, text):
         from openpyxl import Workbook
-        workbook = Workbook(); sheet = workbook.active; sheet.title = "Notlar"; sheet["A1"] = "Kadir's PDF App Notları"
+        workbook = Workbook(); sheet = workbook.active; sheet.title = "Notlar"; sheet["A1"] = f"{APP_NAME} Notları"
         for row, line in enumerate(text.splitlines() or [""], start=2): sheet.cell(row=row, column=1, value=line)
         sheet.column_dimensions["A"].width = 100; workbook.save(path)
 
@@ -1516,7 +1568,19 @@ class PDFStudio(QMainWindow):
         self.status_msg(f"{text} bölümü seçildi")
 
     def show_help(self):
-        QMessageBox.information(self, "Kadir's PDF App Yardım", "Ctrl+O: PDF aç\nCtrl+F: Belge ara\nCtrl+S: PDF dışa aktar\nEscape: Seçim aracına dön\n\nSağ panelden not alabilir, metin biçimlendirebilir ve notlarınızı PDF, Word, Excel veya TXT olarak kaydedebilirsiniz.")
+        QMessageBox.information(self, f"{APP_NAME} Yardım", "Ctrl+O: PDF aç\nCtrl+F: Belge ara\nCtrl+S: PDF dışa aktar\nEscape: Seçim aracına dön\n\nSağ panelden not alabilir, metin biçimlendirebilir ve notlarınızı PDF, Word, Excel veya TXT olarak kaydedebilirsiniz.")
+
+    def show_about(self):
+        about = (
+            f"{APP_NAME}\n\n"
+            "PDF belgeleri için yerel çalışma, düzenleme ve dışa aktarma aracı.\n\n"
+            "Geliştirici: ByScientestKadir\n"
+            "İletişim: astromoon.1990@gmail.com\n\n"
+            "Hukuki bilgi: Bu uygulama eğitimsel ve kişisel kullanım amacıyla sunulur. "
+            "PDF içeriklerinin telif, gizlilik ve kullanım izinlerinden kullanıcı sorumludur. "
+            "Uygulama ve bağlı modeller için açık kaynak lisansları README dosyasında açıklanmıştır."
+        )
+        QMessageBox.about(self, f"{APP_NAME} Hakkında", about)
 
     def toggle_star_current(self):
         if not self.current_file:
@@ -1541,7 +1605,7 @@ class PDFStudio(QMainWindow):
 
     def show_settings(self):
         dialog = QDialog(self); dialog.setWindowTitle("Ayarlar"); dialog.setMinimumWidth(360); layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("Kadir's PDF App ayarları")); autosave = QCheckBox("Notları otomatik kaydet"); autosave.setChecked(self.autosave_enabled); layout.addWidget(autosave)
+        layout.addWidget(QLabel(f"{APP_NAME} ayarları")); autosave = QCheckBox("Notları otomatik kaydet"); autosave.setChecked(self.autosave_enabled); layout.addWidget(autosave)
         close_after = QCheckBox("Dışa aktardıktan sonra Dosya sekmesine dön"); close_after.setChecked(self.close_after_export); layout.addWidget(close_after)
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel); buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject); layout.addWidget(buttons)
         if dialog.exec() == QDialog.Accepted:
@@ -1609,4 +1673,4 @@ class PDFStudio(QMainWindow):
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv); app.setApplicationName("Kadir's PDF App"); icon_path = APP_DIR / "kadir_pdf_logo.ico" if (APP_DIR / "kadir_pdf_logo.ico").exists() else APP_DIR / "kadir_pdf_logo.png"; app.setWindowIcon(QIcon(str(icon_path))); window = PDFStudio(); window.show(); sys.exit(app.exec())
+    app = QApplication(sys.argv); app.setApplicationName(APP_NAME); icon_path = APP_DIR / "kadir_pdf_logo.ico" if (APP_DIR / "kadir_pdf_logo.ico").exists() else APP_DIR / "kadir_pdf_logo.png"; app.setWindowIcon(QIcon(str(icon_path))); window = PDFStudio(); window.show(); sys.exit(app.exec())

@@ -1,4 +1,4 @@
-# Kadir's PDF App
+# AstroPDF Studio
 
 ## Arayuz galerisi
 
@@ -58,7 +58,7 @@ Qwen 2.5 modeli Ollama uzerinden yerel olarak kullanilir. PDF ozeti, belge sorul
 
 ![AI asistani](./docs/screenshots/ai-assistant-original.png)
 
-Kadir's PDF App, Windows üzerinde çalışan, PDF belgelerini yerel olarak açmak, incelemek, düzenlemek, notlandırmak ve dışa aktarmak için geliştirilmiş bir masaüstü uygulamasıdır. Uygulama PySide6 arayüzünü, PyMuPDF belge motorunu ve isteğe bağlı olarak Ollama/Qwen yerel yapay zekâ desteğini kullanır.
+AstroPDF Studio, Windows üzerinde çalışan, PDF belgelerini yerel olarak açmak, incelemek, düzenlemek, notlandırmak ve dışa aktarmak için geliştirilmiş bir masaüstü uygulamasıdır. Uygulama PySide6 arayüzünü, PyMuPDF belge motorunu ve isteğe bağlı olarak Ollama/Qwen yerel yapay zekâ desteğini kullanır.
 
 ## İçindekiler
 
@@ -636,18 +636,18 @@ Tek dosyalık Windows uygulaması oluşturun:
 
 ```powershell
 pyinstaller --noconfirm --onefile --windowed `
-  --name "KadirsPDFApp" `
+  --name "AstroPDFStudio" `
   --icon "kadir_pdf_logo.ico" `
   --add-data "kadir_pdf_logo.png;." `
   --add-data "kadir_pdf_logo.ico;." `
   pdf_studio.py
 ```
 
-Oluşan dosya genellikle `dist\KadirsPDFApp.exe` konumunda bulunur. PyInstaller ile oluşturulan EXE, Python paketlerini içerir; Ollama ve Qwen modeli ise ayrı kurulmalıdır.
+Oluşan dosya genellikle `dist\AstroPDFStudio.exe` konumunda bulunur. PyInstaller ile oluşturulan EXE, Python paketlerini içerir; Ollama ve Qwen modeli ise ayrı kurulmalıdır.
 
 ### Hazır Windows sürümü
 
-ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.3.0 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.3.0) indirebilirsiniz. `KadirsPDFApp.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
+ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.3.1 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.3.1) indirebilirsiniz. `AstroPDFStudio.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
 
 ## Proje yapısı
 
@@ -732,7 +732,27 @@ ollama list
 
 Komut bulunamıyorsa Ollama’yı kurun veya yeni bir PowerShell penceresi açarak PATH’in güncellenmesini sağlayın.
 
-## Lisans ve geliştirme notu
+## Hakkında, iletişim ve hukuki bilgiler
+
+Uygulama adı: **AstroPDF Studio**  
+Geliştirici: **ByScientestKadir**  
+İletişim: **astromoon.1990@gmail.com**
+
+### Kullanım ve sorumluluk
+
+AstroPDF Studio kişisel, eğitimsel ve yerel belge çalışma amaçlarıyla geliştirilmiştir. Kullanıcı; açtığı, düzenlediği, dışa aktardığı, yazdırdığı veya bulut hesabına gönderdiği belgeler üzerindeki telif, gizlilik, kişisel veri ve kullanım izinlerinden kendisi sorumludur. Uygulama hukuki, mali, tıbbi veya resmi belge doğrulama danışmanlığı sunmaz. PDF düzenleme, OCR, yapay zekâ ve otomatik metin üretimi çıktıları resmi karar veya tek doğruluk kaynağı olarak kullanılmadan önce kullanıcı tarafından kontrol edilmelidir.
+
+### Gizlilik ve veri işleme
+
+PDF'ler ve notlar varsayılan olarak yerel bilgisayarda işlenir. Ollama/Qwen ve Vosk özellikleri yerel servis/model kullanacak şekilde tasarlanmıştır. Google Drive senkronizasyonu yalnızca kullanıcı açıkça etkinleştirirse çalışır ve `drive.file` kapsamını kullanır. OAuth kimlik bilgileri, yenileme token'ları, PDF içerikleri ve özel belgeler kaynak koduna veya GitHub'a eklenmemelidir. Kullanıcı, üçüncü taraf servislerin kendi gizlilik politikalarını ayrıca incelemelidir.
+
+### Üçüncü taraf lisansları
+
+Uygulama PySide6, PyMuPDF, Vosk, pyttsx3, python-docx, openpyxl, Google API istemci paketleri ve isteğe bağlı Ollama/Qwen bileşenlerinden yararlanır. Bu bileşenlerin lisansları ve dağıtım koşulları ilgili paketlerin resmi lisans metinlerine tabidir. Qwen modeli, Vosk modeli, Windows sesleri ve Google Drive hizmeti uygulamadan ayrı üçüncü taraf kaynaklardır; bunların kullanım koşullarına kullanıcı uymalıdır.
+
+Bu proje için özel bir garanti verilmez; yazılım "olduğu gibi" sunulur. Veri kaybını önlemek için önemli belgelerin yedeklerini alın ve düzenleme/dışa aktarma sonrası sonucu kontrol edin. Hukuki bildirim veya lisans soruları için iletişim adresi: **astromoon.1990@gmail.com**.
+
+### Lisans ve geliştirme notu
 
 Bu proje yerel PDF çalışma alanı olarak geliştirilmiştir. Üretim dağıtımından önce bağımlılık lisanslarının, dağıtım boyutunun ve Ollama/Qwen model lisansının ayrıca incelenmesi önerilir.
 
@@ -779,7 +799,7 @@ Uygulama yalnızca en az yetkili `drive.file` kapsamını ister. OAuth JSON ve t
 
 ## English
 
-Kadir's PDF App is a local Windows desktop application for opening, reading, annotating, exporting and printing PDF documents. The interface can be switched at runtime between Turkish, English and Spanish from the **Language / Dil** menu. The selected language is saved locally and restored on the next launch.
+AstroPDF Studio is a local Windows desktop application for opening, reading, annotating, exporting and printing PDF documents. The interface can be switched at runtime between Turkish, English and Spanish from the **Language / Dil** menu. The selected language is saved locally and restored on the next launch.
 
 ### Main features
 
@@ -793,6 +813,13 @@ Kadir's PDF App is a local Windows desktop application for opening, reading, ann
 - Optional Google Drive synchronization with least-privilege `drive.file` OAuth: upload the open PDF, notes and local state, or download a PDF.
 - Search, starred documents, recent files, themes, full-screen mode and a Windows EXE distribution with the application ICO embedded.
 
+### Legal and contact
+
+Developer: **ByScientestKadir**  
+Contact: **astromoon.1990@gmail.com**
+
+This software is provided for personal and educational document-workspace use without warranty. Users are responsible for copyright, privacy, personal-data protection, document permissions and legal compliance for every PDF they open, edit, export, print or synchronize. AI, OCR and speech-to-text results must be reviewed by the user. See the Turkish legal-information section above for privacy, third-party service and license notes.
+
 ### Language selection
 
 Open **Language / Dil** in the application menu and choose **Türkçe**, **English** or **Español**. Menu labels, navigation buttons, dashboard cards, tabs and common application controls are refreshed immediately. PDF content, filenames and user-created notes are intentionally kept unchanged.
@@ -804,7 +831,7 @@ py -m pip install -r requirements.txt
 py pdf_studio.py
 ```
 
-For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.3.0 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.3.0).
+For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.3.1 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.3.1).
 
 For Google Drive sync, enable the Google Drive API in Google Cloud Console, create a Desktop OAuth client, download its JSON file, and select it in **Google Drive > Open sync panel**. The app requests only the `drive.file` scope and stores the refresh token locally under `%LOCALAPPDATA%\\KadirsPDFApp`; never commit either JSON credentials or token files.
 
@@ -815,4 +842,4 @@ py -m pip install pyinstaller
 pyinstaller --noconfirm --clean KadirsPDFApp.spec
 ```
 
-The generated file is `dist\\KadirsPDFApp.exe`. The ICO file is embedded through `KadirsPDFApp.spec`; Ollama, the Qwen model and the Vosk model remain separate runtime resources.
+The generated file is `dist\\AstroPDFStudio.exe`. The ICO file is embedded through `KadirsPDFApp.spec`; Ollama, the Qwen model and the Vosk model remain separate runtime resources.
