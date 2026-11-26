@@ -16,6 +16,13 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+# PDF koordinat sistemi 72 DPI kabul eder. 300 DPI render için kullanılan
+# temel ölçek budur; yakınlaştırma bu değerin üzerine eklenir.
+PDF_RENDER_DPI = 300
+PDF_POINTS_PER_INCH = 72
+PDF_BASE_SCALE = PDF_RENDER_DPI / PDF_POINTS_PER_INCH
+PDF_MAX_RENDER_PIXELS = 48_000_000
+
 try:
     import pymupdf as fitz
 except ImportError:
@@ -743,7 +750,9 @@ class PDFTextEditorDialog(QDialog):
         self.source_path = Path(source_path) if source_path else None
         self.doc = None
         self.page_index = 0
-        self.scale = 1.5
+        # Metin düzenleme önizlemesi de ana görüntüleyiciyle aynı 300 DPI
+        # kalitesini kullanır; böylece düzenlenecek kelimeler piksellenmez.
+        self.scale = PDF_BASE_SCALE
         self.words_by_page = []
         self.edits = {}
         self.setWindowTitle("PDF metin dÃ¼zenleyici")
@@ -790,9 +799,10 @@ class PDFTextEditorDialog(QDialog):
         if not self.doc or not (1 <= value <= len(self.doc)):
             return
         self.page_index = value - 1; page = self.doc[self.page_index]
-        pixmap_data = page.get_pixmap(matrix=fitz.Matrix(self.scale, self.scale), colorspace=fitz.csRGB, alpha=False)
+        safe_scale = min(self.scale, math.sqrt(PDF_MAX_RENDER_PIXELS / max(1.0, page.rect.width * page.rect.height)))
+        pixmap_data = page.get_pixmap(matrix=fitz.Matrix(safe_scale, safe_scale), colorspace=fitz.csRGB, alpha=False)
         image = QImage(pixmap_data.samples, pixmap_data.width, pixmap_data.height, pixmap_data.stride, QImage.Format_RGB888).copy()
-        self.canvas.set_page(QPixmap.fromImage(image), self.words_by_page[self.page_index], self.scale)
+        self.canvas.set_page(QPixmap.fromImage(image), self.words_by_page[self.page_index], safe_scale)
         self.canvas.set_replacements(self.edits.get(self.page_index, {}))
 
     def edit_word(self, word_index):
@@ -1458,11 +1468,12 @@ class PDFStudio(QMainWindow):
         if self.doc and fitz:
             # 1.35 katsayısı, PDF'in 72 DPI koordinat alanını modern ekranlara
             # daha düzgün taşır ve mevcut yakınlaştırma yüzdesini korur.
-            requested = max(.25, self.zoom) * 1.35
+            # PDF'ler 72 DPI koordinat sistemiyle tutulur. 300 DPI temel render
+            # ölçeği, açılışta ve her yakınlaştırmada keskin metin sağlar.
+            requested = max(.25, self.zoom) * PDF_BASE_SCALE
             for page in self.doc:
                 rect = page.rect
-                max_pixels = 20_000_000
-                safe_scale = min(requested, math.sqrt(max_pixels / max(1.0, rect.width * rect.height)))
+                safe_scale = min(requested, math.sqrt(PDF_MAX_RENDER_PIXELS / max(1.0, rect.width * rect.height)))
                 # RGB renk uzayı, gri tonlu PDF'lerde metnin QImage içinde kaybolmasını önler.
                 raw = page.get_pixmap(matrix=fitz.Matrix(safe_scale, safe_scale), colorspace=fitz.csRGB, alpha=False, annots=True)
                 img = QImage(raw.samples, raw.width, raw.height, raw.stride, QImage.Format_RGB888).copy()

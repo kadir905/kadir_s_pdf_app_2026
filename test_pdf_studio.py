@@ -215,6 +215,25 @@ class PDFStudioTests(unittest.TestCase):
             self.assertGreater(self.window.canvas.pixmaps[0].width(), 0)
             self.window.doc.close(); self.window.doc = None
 
+    def test_pdf_page_is_rendered_at_300_dpi_base_quality(self):
+        if pdf_studio.fitz is None:
+            self.skipTest("PyMuPDF kurulu değil")
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "300-dpi.pdf"
+            document = pdf_studio.fitz.open(); document.new_page(width=595, height=842)
+            document.save(str(source)); document.close()
+            self.window.load_file(source)
+            try:
+                pixmap = self.window.canvas.pixmaps[0]
+                expected_width = 595 * pdf_studio.PDF_RENDER_DPI / pdf_studio.PDF_POINTS_PER_INCH
+                # PyMuPDF piksel boyutunu yuvarlayarak hesaplar; bir piksel
+                # farkı farklı sürümlerde normal kabul edilir.
+                self.assertGreaterEqual(pixmap.width(), int(expected_width))
+                self.assertLessEqual(pixmap.width(), int(expected_width) + 1)
+                self.assertEqual(self.window.zoom, 1.0)
+            finally:
+                self.window.doc.close(); self.window.doc = None
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

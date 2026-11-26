@@ -272,7 +272,7 @@ Bir PDF açıldığında uygulama belgenin tüm sayfalarını yüksek kaliteli g
 | `Fit` | Görüntüleme ölçeğini varsayılan görünüme getirir |
 | `⛶` | Tam ekran modunu açar veya kapatır |
 
-Render kalitesi, PDF’nin temel 72 DPI koordinatlarının ekranlarda daha net görünmesi için iyileştirilmiş ölçekle hazırlanır. Çok büyük sayfalarda bellek kullanımını dengede tutmak için sayfa başına güvenli piksel sınırı uygulanır.
+Render kalitesi, PDF'nin temel 72 DPI koordinat sistemi üzerinden 300 DPI taban kaliteyle hazırlanır. Yakınlaştırma yapıldığında sayfa, mevcut yakınlaştırma seviyesine göre yeniden render edilir; bu nedenle metin ve çizgiler düşük çözünürlüklü eski görüntü gibi piksellenmez. Çok büyük sayfalarda bellek kullanımını dengede tutmak için sayfa başına güvenli piksel sınırı uygulanır.
 
 ## Düzenleme ve anotasyon
 
