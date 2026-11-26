@@ -26,6 +26,7 @@ class PDFStudioTests(unittest.TestCase):
     def test_application_builds_main_menus(self):
         menu_names = [action.text() for action in self.window.menuBar().actions()]
         self.assertIn("Google Drive", menu_names)
+        self.assertIn("PDF metin dÃ¼zenleme", menu_names)
         self.assertIn("Dosya", menu_names)
         self.assertIn("Çalışma alanı", menu_names)
         self.assertIn("Çalışma paneli", menu_names)
@@ -39,6 +40,20 @@ class PDFStudioTests(unittest.TestCase):
         self.assertIn("client_secret.json", dialog.credentials_path.text())
         self.assertIsNone(dialog.service)
         dialog.close()
+
+    def test_pdf_text_editor_replaces_word_in_same_bounding_box(self):
+        if pdf_studio.fitz is None:
+            self.skipTest("PyMuPDF kurulu deÄŸil")
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.pdf"; output = Path(directory) / "edited.pdf"
+            document = pdf_studio.fitz.open(); page = document.new_page(); page.insert_text((40, 50), "Eski metin"); document.save(str(source)); document.close()
+            dialog = pdf_studio.PDFTextEditorDialog(self.window, source)
+            original_rect = tuple(dialog.words_by_page[0][0][:4])
+            dialog.edits = {0: {0: "Yeni"}}
+            self.assertTrue(dialog.save_to(output))
+            check = pdf_studio.fitz.open(str(output)); extracted = check[0].get_text(); check.close(); dialog.close()
+            self.assertIn("Yeni", extracted); self.assertNotIn("Eski", extracted)
+            self.assertEqual(tuple(dialog.words_by_page[0][0][:4]), original_rect)
 
     def test_voice_dialog_has_printer_output_control(self):
         dialog = pdf_studio.VoiceToTextDialog(self.window)

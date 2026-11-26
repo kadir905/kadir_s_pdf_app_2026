@@ -683,6 +683,200 @@ class PageCanvas(QWidget):
     def add_text(self, point, value, style=None): self.add_annotation({"kind": "text", "point": point, "value": value, "style": style or {}}); self.annotation_added.emit("Metin eklendi"); self.update()
 
 
+class PdfTextEditCanvas(QWidget):
+    """Bir PDF sayfasÄ±ndaki kelimeleri tÄ±klanabilir dÃ¼zenleme alanlarÄ± olarak gÃ¶sterir."""
+
+    word_clicked = Signal(int)
+
+    def __init__(self):
+        super().__init__()
+        self.pixmap = QPixmap()
+        self.words = []
+        self.word_rects = []
+        self.replacements = {}
+        self.setMinimumSize(700, 650)
+
+    def set_page(self, pixmap, words, scale):
+        self.pixmap = pixmap
+        self.words = words
+        self.word_rects = [QRectF(float(word[0]) * scale, float(word[1]) * scale, (float(word[2]) - float(word[0])) * scale, (float(word[3]) - float(word[1])) * scale) for word in words]
+        self.setFixedSize(max(700, pixmap.width() + 40), max(650, pixmap.height() + 40))
+        self.update()
+
+    def set_replacements(self, replacements):
+        self.replacements = replacements or {}
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("#0b1018"))
+        if self.pixmap.isNull():
+            painter.setPen(QColor("#f3f6fc")); painter.drawText(self.rect(), Qt.AlignCenter, "PDF sayfasÄ± yok")
+            return
+        x = max(20, (self.width() - self.pixmap.width()) // 2)
+        self.page_offset = QPoint(x, 20)
+        painter.drawPixmap(self.page_offset, self.pixmap)
+        # KullanÄ±cÄ± kaydetmeden Ã¶nce de yeni metni gÃ¶rebilsin; bu, dÃ¼zenleme modunun anÄ±nda geri bildirimidir.
+        for index, replacement in self.replacements.items():
+            if index >= len(self.word_rects):
+                continue
+            rect = self.word_rects[index].translated(self.page_offset)
+            painter.fillRect(rect.adjusted(-1, -1, 1, 1), QColor("white"))
+            painter.setPen(QColor("black")); painter.setFont(QFont("Segoe UI", max(7, int(rect.height() * 0.72))))
+            painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, replacement)
+
+    def mousePressEvent(self, event):
+        if event.button() != Qt.LeftButton or self.pixmap.isNull():
+            return
+        point = event.position().toPoint() - getattr(self, "page_offset", QPoint(0, 0))
+        for index, rect in enumerate(self.word_rects):
+            if rect.contains(point):
+                self.word_clicked.emit(index)
+                return
+
+
+class PDFTextEditorDialog(QDialog):
+    """PDF kelime dÃ¼zenleyici: kelime koordinatlarÄ±nÄ± koruyarak yeni PDF Ã¼retir."""
+
+    def __init__(self, owner=None, source_path=None):
+        super().__init__(owner)
+        self.source_path = Path(source_path) if source_path else None
+        self.doc = None
+        self.page_index = 0
+        self.scale = 1.5
+        self.words_by_page = []
+        self.edits = {}
+        self.setWindowTitle("PDF metin dÃ¼zenleyici")
+        self.resize(1000, 800)
+        layout = QVBoxLayout(self)
+        top = QHBoxLayout()
+        open_button = QPushButton("PDF seÃ§")
+        open_button.clicked.connect(self.choose_pdf)
+        self.page_spin = QSpinBox(); self.page_spin.setMinimum(1); self.page_spin.valueChanged.connect(self.show_page)
+        self.page_label = QLabel("/ 0")
+        top.addWidget(open_button); top.addWidget(QLabel("Sayfa:")); top.addWidget(self.page_spin); top.addWidget(self.page_label); top.addStretch()
+        layout.addLayout(top)
+        self.canvas = PdfTextEditCanvas(); self.canvas.word_clicked.connect(self.edit_word)
+        scroll = QScrollArea(); scroll.setWidget(self.canvas); scroll.setWidgetResizable(False); layout.addWidget(scroll, 1)
+        self.status = QLabel("Bir PDF seÃ§in; dÃ¼zenlemek istediÄŸiniz kelimenin Ã¼zerine bir kez tÄ±klayÄ±n."); self.status.setWordWrap(True); layout.addWidget(self.status)
+        buttons = QHBoxLayout()
+        save_button = QPushButton("Yeni PDF olarak kaydet"); save_button.clicked.connect(self.save_as)
+        close_button = QPushButton("Kapat"); close_button.clicked.connect(self.accept)
+        buttons.addWidget(save_button); buttons.addStretch(); buttons.addWidget(close_button); layout.addLayout(buttons)
+        if self.source_path:
+            self.load_pdf(self.source_path)
+
+    def choose_pdf(self):
+        path, _ = QFileDialog.getOpenFileName(self, "DÃ¼zenlenecek PDF'yi seÃ§in", "", "PDF dosyalarÄ± (*.pdf);;TÃ¼m dosyalar (*)")
+        if path:
+            self.load_pdf(Path(path))
+
+    def load_pdf(self, path):
+        if fitz is None:
+            self.status.setText("PDF dÃ¼zenleme iÃ§in PyMuPDF kurulu olmalÄ±."); return
+        try:
+            if self.doc:
+                self.doc.close()
+            self.source_path = Path(path)
+            self.doc = fitz.open(str(self.source_path))
+            self.words_by_page = [page.get_text("words") for page in self.doc]
+            self.edits.clear(); self.page_index = 0; self.page_spin.setRange(1, max(1, len(self.doc))); self.page_spin.setValue(1); self.page_label.setText(f"/ {len(self.doc)}")
+            self.show_page(1)
+            self.status.setText("DÃ¼zenlemek istediÄŸiniz kelimenin Ã¼zerine bir kez tÄ±klayÄ±n.")
+        except Exception as exc:
+            self.status.setText(f"PDF aÃ§Ä±lamadÄ±: {exc}")
+
+    def show_page(self, value):
+        if not self.doc or not (1 <= value <= len(self.doc)):
+            return
+        self.page_index = value - 1; page = self.doc[self.page_index]
+        pixmap_data = page.get_pixmap(matrix=fitz.Matrix(self.scale, self.scale), colorspace=fitz.csRGB, alpha=False)
+        image = QImage(pixmap_data.samples, pixmap_data.width, pixmap_data.height, pixmap_data.stride, QImage.Format_RGB888).copy()
+        self.canvas.set_page(QPixmap.fromImage(image), self.words_by_page[self.page_index], self.scale)
+        self.canvas.set_replacements(self.edits.get(self.page_index, {}))
+
+    def edit_word(self, word_index):
+        if not self.doc:
+            return
+        word = self.words_by_page[self.page_index][word_index]
+        current = self.edits.get(self.page_index, {}).get(word_index, word[4])
+        replacement, ok = QInputDialog.getText(self, "Metni dÃ¼zenle", "Yeni metin:", text=current)
+        if ok:
+            replacement = replacement.strip()
+            if replacement:
+                self.edits.setdefault(self.page_index, {})[word_index] = replacement
+                self.canvas.set_replacements(self.edits[self.page_index])
+                self.status.setText(f"Sayfa {self.page_index + 1}: '{word[4]}' metni dÃ¼zenlendi. Kaydetmek iÃ§in Yeni PDF olarak kaydet dÃ¼ÄŸmesine basÄ±n.")
+
+    def _font_file(self):
+        for candidate in (Path("C:/Windows/Fonts/segoeui.ttf"), Path("C:/Windows/Fonts/arial.ttf")):
+            if candidate.is_file():
+                return str(candidate)
+        return None
+
+    def _insert_replacement(self, page, rect, text):
+        font_file = self._font_file()
+        font = fitz.Font(fontfile=font_file) if font_file else fitz.Font("helv")
+        size = max(4.0, rect.height * 0.78)
+        while size > 4 and font.text_length(text, fontsize=size) > rect.width * 0.96:
+            size -= 0.5
+        kwargs = {"fontsize": size, "fontname": "helv", "color": (0, 0, 0), "align": 0}
+        if font_file:
+            kwargs["fontfile"] = font_file
+        page.insert_textbox(rect, text, **kwargs)
+
+    def save_to(self, output_path):
+        if not self.doc or not self.edits:
+            return False
+        output_path = Path(output_path)
+        document = fitz.open(str(self.source_path))
+        for page_index, page_edits in self.edits.items():
+            page = document[page_index]
+            for word_index in page_edits:
+                word = self.words_by_page[page_index][word_index]
+                page.add_redact_annot(fitz.Rect(*word[:4]), fill=(1, 1, 1))
+            page.apply_redactions()
+            for word_index, replacement in page_edits.items():
+                word = self.words_by_page[page_index][word_index]
+                self._insert_replacement(page, fitz.Rect(*word[:4]), replacement)
+        document.save(str(output_path), garbage=4, deflate=True)
+        document.close()
+        # Kaydedilen dosyayÄ± yeniden okuyarak metnin gerÃ§ekten PDF katmanÄ±na yazÄ±ldÄ±ÄŸÄ±nÄ± doÄŸrula.
+        check = fitz.open(str(output_path))
+        try:
+            for page_index, page_edits in self.edits.items():
+                text = check[page_index].get_text("text")
+                for replacement in page_edits.values():
+                    if replacement not in text:
+                        raise RuntimeError(f"DeÄŸiÅŸtirilen metin PDF katmanÄ±nda bulunamadÄ±: {replacement}")
+        finally:
+            check.close()
+        return True
+
+    def save_as(self):
+        if not self.edits:
+            self.status.setText("Kaydetmek iÃ§in en az bir kelimeyi dÃ¼zenleyin."); return
+        default = self.source_path.with_name(f"{self.source_path.stem}_edited.pdf") if self.source_path else Path("edited.pdf")
+        path, _ = QFileDialog.getSaveFileName(self, "DÃ¼zenlenmiÅŸ PDF'yi kaydet", str(default), "PDF dosyalarÄ± (*.pdf)")
+        if not path:
+            return
+        try:
+            output = Path(path)
+            self.save_to(output)
+            self.status.setText(f"DÃ¼zenlenmiÅŸ PDF kaydedildi: {output.name}")
+            # KullanÄ±cÄ±nÄ±n eski belgeyi gÃ¶rmeye devam etmesini engellemek iÃ§in ana gÃ¶rÃ¼ntÃ¼leyiciyi yeni dosyaya alÄ±yoruz.
+            if self.parent() and hasattr(self.parent(), "load_file"):
+                self.parent().load_file(output)
+            self.accept()
+        except Exception as exc:
+            self.status.setText(f"PDF kaydedilemedi: {exc}")
+
+    def closeEvent(self, event):
+        if self.doc:
+            self.doc.close(); self.doc = None
+        event.accept()
+
+
 class GoogleDriveSyncDialog(QDialog):
     """Google Drive için güvenli, isteğe bağlı OAuth senkronizasyon penceresi."""
 
@@ -937,6 +1131,7 @@ class PDFStudio(QMainWindow):
         calendar_menu = self.menuBar().addMenu(t("Takvim")); calendar_menu.addAction(t("Takvimi aç"), self.open_calendar); calendar_menu.addAction(t("Bugünün notlarını kontrol et"), self.check_reminders)
         qwen_menu = self.menuBar().addMenu(t("Qwen AI")); qwen_menu.addAction(t("Türkçe fine-tuning hazırlığı"), self.open_finetune_dialog)
         drive_menu = self.menuBar().addMenu("Google Drive"); drive_menu.addAction("Senkronizasyon panelini aç", self.open_drive_sync_dialog)
+        editor_menu = self.menuBar().addMenu("PDF metin dÃ¼zenleme"); editor_menu.addAction("PDF metin dÃ¼zenleyiciyi aÃ§", self.open_pdf_text_editor)
         language_menu = self.menuBar().addMenu(t("Dil / Language"))
         for code, name in LANGUAGE_NAMES.items():
             action = language_menu.addAction(name); action.setCheckable(True); action.setChecked(code == self.language); action.triggered.connect(lambda checked=False, value=code: self.set_language(value))
@@ -1222,6 +1417,15 @@ class PDFStudio(QMainWindow):
         dialog.exec()
     def open_drive_sync_dialog(self):
         dialog = GoogleDriveSyncDialog(self)
+        dialog.exec()
+    def open_pdf_text_editor(self):
+        source = self.current_file
+        if source is None:
+            path, _ = QFileDialog.getOpenFileName(self, "DÃ¼zenlenecek PDF'yi seÃ§in", "", "PDF dosyalarÄ± (*.pdf);;TÃ¼m dosyalar (*)")
+            if not path:
+                return
+            source = Path(path)
+        dialog = PDFTextEditorDialog(self, source)
         dialog.exec()
     def check_reminders(self):
         due = self.reminder_store.due(datetime.now())
