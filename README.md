@@ -757,6 +757,20 @@ py -m pip_audit -r requirements.txt
 
 Son güvenlik taramasında bilinen bağımlılık açığı bulunmamıştır. GPU fine-tuning paketleri yalnızca eğitim yapılacak ortamda kurulmalı ve güvenilir kaynaklardan yüklenmelidir.
 
+## Google Drive senkronizasyonu
+
+Uygulama menüsündeki **Google Drive > Senkronizasyon panelini aç** seçeneğiyle açılan panel; açık PDF'yi, notları ve uygulama durumunu Drive'a yükleyebilir, Drive kök klasöründeki PDF'lerden birini seçip bilgisayara indirebilir.
+
+### Google Cloud yapılandırması
+
+1. [Google Cloud Console](https://console.cloud.google.com/) üzerinden bir proje oluşturun veya mevcut projeyi seçin.
+2. **Google Drive API**'yi etkinleştirin.
+3. **APIs & Services > Credentials > Create credentials > OAuth client ID** yolundan **Desktop app** türünde istemci oluşturun.
+4. İndirilen OAuth JSON dosyasını uygulama klasörüne `client_secret.json` adıyla koyun veya paneldeki **OAuth JSON seç** düğmesiyle gösterin.
+5. **Google hesabına bağlan** düğmesine basın. İlk kullanımda tarayıcıda Google izin ekranı açılır; yenileme token'ı `%LOCALAPPDATA%\\KadirsPDFApp\\google_drive_token.json` konumunda yerel olarak saklanır.
+
+Uygulama yalnızca en az yetkili `drive.file` kapsamını ister. OAuth JSON ve token dosyalarını GitHub'a yüklemeyin. Erişimi kaldırmak için Google hesabınızdaki üçüncü taraf uygulama izinlerini iptal edebilir veya yerel token dosyasını silebilirsiniz.
+
 ## English
 
 Kadir's PDF App is a local Windows desktop application for opening, reading, annotating, exporting and printing PDF documents. The interface can be switched at runtime between Turkish, English and Spanish from the **Language / Dil** menu. The selected language is saved locally and restored on the next launch.
@@ -770,6 +784,7 @@ Kadir's PDF App is a local Windows desktop application for opening, reading, ann
 - Local Ollama/Qwen 2.5 assistant for summaries, document questions and note cleanup.
 - Qwen fine-tuning preparation screen that exports JSONL training data and an Ollama Modelfile.
 - Calendar reminders stored in a local SQLite database and shown while the application is running.
+- Optional Google Drive synchronization with least-privilege `drive.file` OAuth: upload the open PDF, notes and local state, or download a PDF.
 - Search, starred documents, recent files, themes, full-screen mode and a Windows EXE distribution with the application ICO embedded.
 
 ### Language selection
@@ -784,6 +799,8 @@ py pdf_studio.py
 ```
 
 For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.1.1 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.1.1).
+
+For Google Drive sync, enable the Google Drive API in Google Cloud Console, create a Desktop OAuth client, download its JSON file, and select it in **Google Drive > Open sync panel**. The app requests only the `drive.file` scope and stores the refresh token locally under `%LOCALAPPDATA%\\KadirsPDFApp`; never commit either JSON credentials or token files.
 
 ### English EXE build
 

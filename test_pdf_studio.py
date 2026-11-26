@@ -25,6 +25,7 @@ class PDFStudioTests(unittest.TestCase):
 
     def test_application_builds_main_menus(self):
         menu_names = [action.text() for action in self.window.menuBar().actions()]
+        self.assertIn("Google Drive", menu_names)
         self.assertIn("Dosya", menu_names)
         self.assertIn("Çalışma alanı", menu_names)
         self.assertIn("Çalışma paneli", menu_names)
@@ -32,6 +33,12 @@ class PDFStudioTests(unittest.TestCase):
         self.assertIn("Yardım", menu_names)
         file_menu = next(action.menu() for action in self.window.menuBar().actions() if action.text() == "Dosya")
         self.assertIn("Yazdır", [action.text() for action in file_menu.actions()])
+
+    def test_google_drive_dialog_is_available_without_credentials(self):
+        dialog = pdf_studio.GoogleDriveSyncDialog(self.window)
+        self.assertIn("client_secret.json", dialog.credentials_path.text())
+        self.assertIsNone(dialog.service)
+        dialog.close()
 
     def test_voice_dialog_has_printer_output_control(self):
         dialog = pdf_studio.VoiceToTextDialog(self.window)

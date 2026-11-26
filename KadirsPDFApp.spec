@@ -6,7 +6,11 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('kadir_pdf_logo.png', '.'), ('kadir_pdf_logo.ico', '.')],
-    hiddenimports=[],
+    hiddenimports=[
+        'googleapiclient.discovery', 'googleapiclient.http',
+        'google_auth_oauthlib.flow', 'google.auth.transport.requests',
+        'google.oauth2.credentials', 'httplib2', 'oauthlib.oauth2',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

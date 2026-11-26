@@ -1,5 +1,6 @@
 import json
 from html import escape
+import io
 import math
 import os
 import queue
@@ -45,6 +46,8 @@ except OSError:
     USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 STATE_FILE = USER_DATA_DIR / "pdf_studio_state.json"
 VOSK_MODEL_NAME = "vosk-model-small-tr-0.3"
+GOOGLE_TOKEN_FILE = USER_DATA_DIR / "google_drive_token.json"
+GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
 
 # Arayüzün üç dilde kullanılabilmesi için sabit metinlerin karşılıkları.
 # Dosya adları, PDF içeriği ve kullanıcı tarafından yazılan metinler çevrilmez.
@@ -680,6 +683,154 @@ class PageCanvas(QWidget):
     def add_text(self, point, value, style=None): self.add_annotation({"kind": "text", "point": point, "value": value, "style": style or {}}); self.annotation_added.emit("Metin eklendi"); self.update()
 
 
+class GoogleDriveSyncDialog(QDialog):
+    """Google Drive için güvenli, isteğe bağlı OAuth senkronizasyon penceresi."""
+
+    def __init__(self, owner):
+        super().__init__(owner)
+        self.owner = owner
+        self.service = None
+        self.setWindowTitle("Google Drive senkronizasyonu")
+        self.resize(560, 330)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Google Cloud OAuth istemci JSON dosyasını seçin. Bu dosya depoya eklenmemelidir."))
+        path_row = QHBoxLayout()
+        self.credentials_path = QLineEdit(getattr(owner, "google_credentials_path", str(APP_DIR / "client_secret.json")))
+        browse = QPushButton("OAuth JSON seç")
+        browse.clicked.connect(self.choose_credentials)
+        path_row.addWidget(self.credentials_path, 1); path_row.addWidget(browse)
+        layout.addLayout(path_row)
+        self.status = QLabel("Bağlanılmadı")
+        self.status.setWordWrap(True)
+        layout.addWidget(self.status)
+        buttons = QHBoxLayout()
+        sign_in = QPushButton("Google hesabına bağlan")
+        sign_in.clicked.connect(self.authenticate)
+        upload_pdf = QPushButton("Açık PDF'yi yükle")
+        upload_pdf.clicked.connect(self.upload_current_pdf)
+        download_pdf = QPushButton("Drive'dan PDF indir")
+        download_pdf.clicked.connect(self.download_pdf)
+        buttons.addWidget(sign_in); buttons.addWidget(upload_pdf); buttons.addWidget(download_pdf)
+        layout.addLayout(buttons)
+        buttons2 = QHBoxLayout()
+        upload_notes = QPushButton("Notları yükle")
+        upload_notes.clicked.connect(self.upload_notes)
+        upload_state = QPushButton("Uygulama durumunu yükle")
+        upload_state.clicked.connect(self.upload_state)
+        close_button = QPushButton("Kapat")
+        close_button.clicked.connect(self.accept)
+        buttons2.addWidget(upload_notes); buttons2.addWidget(upload_state); buttons2.addStretch(); buttons2.addWidget(close_button)
+        layout.addLayout(buttons2)
+
+    def choose_credentials(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Google OAuth JSON dosyasını seçin", str(APP_DIR), "JSON dosyaları (*.json)")
+        if path:
+            self.credentials_path.setText(path)
+
+    def authenticate(self):
+        """OAuth akışını başlatır; token yalnızca yerel kullanıcı verisi klasöründe saklanır."""
+        try:
+            from google.auth.transport.requests import Request
+            from google.oauth2.credentials import Credentials
+            from google_auth_oauthlib.flow import InstalledAppFlow
+            from googleapiclient.discovery import build
+            credentials_file = Path(self.credentials_path.text().strip()).expanduser()
+            if not credentials_file.is_file():
+                raise FileNotFoundError("OAuth JSON dosyası bulunamadı.")
+            credentials = None
+            if GOOGLE_TOKEN_FILE.is_file():
+                credentials = Credentials.from_authorized_user_file(str(GOOGLE_TOKEN_FILE), [GOOGLE_DRIVE_SCOPE])
+            if credentials and credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())
+            if not credentials or not credentials.valid:
+                flow = InstalledAppFlow.from_client_secrets_file(str(credentials_file), [GOOGLE_DRIVE_SCOPE])
+                credentials = flow.run_local_server(host="localhost", port=0, open_browser=True)
+            GOOGLE_TOKEN_FILE.write_text(credentials.to_json(), encoding="utf-8")
+            self.service = build("drive", "v3", credentials=credentials, cache_discovery=False)
+            self.owner.google_credentials_path = str(credentials_file)
+            self.owner.save_state()
+            self.status.setText("Google Drive bağlantısı hazır.")
+        except Exception as exc:
+            self.service = None
+            self.status.setText(f"Bağlantı başarısız: {exc}")
+
+    def ensure_service(self):
+        if self.service is None:
+            self.authenticate()
+        return self.service
+
+    def upload_file(self, path, mime_type="application/octet-stream"):
+        service = self.ensure_service()
+        if not service:
+            return None
+        from googleapiclient.http import MediaFileUpload
+        path = Path(path)
+        metadata = {"name": path.name}
+        result = service.files().create(body=metadata, media_body=MediaFileUpload(str(path), mimetype=mime_type, resumable=True), fields="id,name,webViewLink").execute()
+        self.status.setText(f"Drive'a yüklendi: {result.get('name', path.name)}")
+        return result
+
+    def upload_bytes(self, name, data, mime_type="text/plain"):
+        service = self.ensure_service()
+        if not service:
+            return None
+        from googleapiclient.http import MediaIoBaseUpload
+        media = MediaIoBaseUpload(io.BytesIO(data), mimetype=mime_type, resumable=False)
+        result = service.files().create(body={"name": name}, media_body=media, fields="id,name,webViewLink").execute()
+        self.status.setText(f"Drive'a yüklendi: {result.get('name', name)}")
+        return result
+
+    def upload_current_pdf(self):
+        path = getattr(self.owner, "current_file", None)
+        if not path or not Path(path).is_file():
+            self.status.setText("Önce bir PDF açın."); return
+        try:
+            self.upload_file(path, "application/pdf")
+        except Exception as exc:
+            self.status.setText(f"PDF yüklenemedi: {exc}")
+
+    def upload_notes(self):
+        try:
+            text = self.owner.notes.toPlainText()
+            self.upload_bytes("KadirsPDFApp-notes.txt", text.encode("utf-8"), "text/plain")
+        except Exception as exc:
+            self.status.setText(f"Notlar yüklenemedi: {exc}")
+
+    def upload_state(self):
+        try:
+            self.owner.save_state()
+            self.upload_file(STATE_FILE, "application/json")
+        except Exception as exc:
+            self.status.setText(f"Durum dosyası yüklenemedi: {exc}")
+
+    def download_pdf(self):
+        try:
+            service = self.ensure_service()
+            if not service:
+                return
+            result = service.files().list(q="'root' in parents and trashed = false and mimeType = 'application/pdf'", fields="files(id,name,modifiedTime)", orderBy="modifiedTime desc", pageSize=100).execute()
+            files = result.get("files", [])
+            if not files:
+                self.status.setText("Drive kök klasöründe PDF bulunamadı."); return
+            names = [item["name"] for item in files]
+            name, ok = QInputDialog.getItem(self, "Drive'dan PDF indir", "PDF:", names, 0, False)
+            if not ok:
+                return
+            selected = next(item for item in files if item["name"] == name)
+            path, _ = QFileDialog.getSaveFileName(self, "PDF'yi kaydet", name, "PDF dosyaları (*.pdf)")
+            if not path:
+                return
+            from googleapiclient.http import MediaIoBaseDownload
+            request = service.files().get_media(fileId=selected["id"])
+            buffer = io.BytesIO(); downloader = MediaIoBaseDownload(buffer, request); done = False
+            while not done:
+                _, done = downloader.next_chunk()
+            Path(path).write_bytes(buffer.getvalue())
+            self.status.setText(f"Drive'dan indirildi: {Path(path).name}")
+        except Exception as exc:
+            self.status.setText(f"PDF indirilemedi: {exc}")
+
+
 class PDFStudio(QMainWindow):
     def __init__(self):
         super().__init__(); self.setWindowTitle("Kadir's PDF App"); self.resize(1480, 900); self.setMinimumSize(1150, 720)
@@ -785,6 +936,7 @@ class PDFStudio(QMainWindow):
         voice_menu = self.menuBar().addMenu(t("Ses")); voice_menu.addAction(t("Vosk ile sesli metin"), self.open_voice_to_text_dialog)
         calendar_menu = self.menuBar().addMenu(t("Takvim")); calendar_menu.addAction(t("Takvimi aç"), self.open_calendar); calendar_menu.addAction(t("Bugünün notlarını kontrol et"), self.check_reminders)
         qwen_menu = self.menuBar().addMenu(t("Qwen AI")); qwen_menu.addAction(t("Türkçe fine-tuning hazırlığı"), self.open_finetune_dialog)
+        drive_menu = self.menuBar().addMenu("Google Drive"); drive_menu.addAction("Senkronizasyon panelini aç", self.open_drive_sync_dialog)
         language_menu = self.menuBar().addMenu(t("Dil / Language"))
         for code, name in LANGUAGE_NAMES.items():
             action = language_menu.addAction(name); action.setCheckable(True); action.setChecked(code == self.language); action.triggered.connect(lambda checked=False, value=code: self.set_language(value))
@@ -1037,6 +1189,7 @@ class PDFStudio(QMainWindow):
             self.vosk_model_path = state.get("vosk_model_path", bundled_vosk_model_path())
             self.autosave_enabled = bool(state.get("autosave_enabled", True))
             self.close_after_export = bool(state.get("close_after_export", False))
+            self.google_credentials_path = state.get("google_credentials_path", str(APP_DIR / "client_secret.json"))
             self.language = state.get("language", "tr") if state.get("language", "tr") in LANGUAGE_NAMES else "tr"
         except Exception:
             self.recent = []; self.starred = []
@@ -1046,9 +1199,10 @@ class PDFStudio(QMainWindow):
             self.vosk_model_path = bundled_vosk_model_path()
             self.autosave_enabled = True
             self.close_after_export = False
+            self.google_credentials_path = str(APP_DIR / "client_secret.json")
             self.language = "tr"
     def save_state(self):
-        try: STATE_FILE.write_text(json.dumps({"recent": self.recent[:12], "starred": self.starred[:100], "notes": self.notes.toPlainText(), "qwen_finetune_examples": self.qwen_finetune_examples[:1000], "qwen_system_prompt": self.qwen_system_prompt, "vosk_model_path": self.vosk_model_path, "autosave_enabled": self.autosave_enabled, "close_after_export": self.close_after_export, "language": self.language}, ensure_ascii=False, indent=2), encoding="utf-8")
+        try: STATE_FILE.write_text(json.dumps({"recent": self.recent[:12], "starred": self.starred[:100], "notes": self.notes.toPlainText(), "qwen_finetune_examples": self.qwen_finetune_examples[:1000], "qwen_system_prompt": self.qwen_system_prompt, "vosk_model_path": self.vosk_model_path, "autosave_enabled": self.autosave_enabled, "close_after_export": self.close_after_export, "language": self.language, "google_credentials_path": getattr(self, "google_credentials_path", str(APP_DIR / "client_secret.json"))}, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception: pass
     def save_notes(self):
         if hasattr(self, "notes"):
@@ -1065,6 +1219,9 @@ class PDFStudio(QMainWindow):
         dialog.exec()
     def open_calendar(self):
         dialog = CalendarDialog(self, self)
+        dialog.exec()
+    def open_drive_sync_dialog(self):
+        dialog = GoogleDriveSyncDialog(self)
         dialog.exec()
     def check_reminders(self):
         due = self.reminder_store.due(datetime.now())
