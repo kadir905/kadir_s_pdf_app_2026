@@ -1,0 +1,6 @@
+# Firebase senkronizasyon API'si için ek bağımlılıklar
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+python-multipart>=0.0.9,<1
+firebase-admin>=6.6,<7
+pydantic>=2.9,<3

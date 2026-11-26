@@ -36,6 +36,15 @@ try:
 except ImportError:
     pyttsx3 = None
 
+try:
+    import firebase_admin
+    from firebase_admin import credentials as firebase_credentials
+    from firebase_admin import firestore as firebase_firestore
+except ImportError:
+    firebase_admin = None
+    firebase_credentials = None
+    firebase_firestore = None
+
 from PySide6.QtCore import QPoint, QRectF, QDate, QTime, QThread, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QColor, QFont, QIcon, QImage, QKeySequence, QPainter, QPen, QPixmap, QTextCursor, QTextDocument
 from PySide6.QtPrintSupport import QPrintPreviewDialog, QPrinter
@@ -56,6 +65,21 @@ STATE_FILE = USER_DATA_DIR / "pdf_studio_state.json"
 VOSK_MODEL_NAME = "vosk-model-small-tr-0.3"
 GOOGLE_TOKEN_FILE = USER_DATA_DIR / "google_drive_token.json"
 GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+FIREBASE_SERVICE_ACCOUNT_FILE = APP_DIR / "derscalismauygulamam-firebase-adminsdk-fbsvc-50de873e2a.json"
+
+
+def get_desktop_firestore():
+    """Masaüstü uygulamasını Firebase Admin SDK ile Firestore'a bağlar."""
+    if firebase_admin is None or firebase_firestore is None:
+        raise RuntimeError("firebase-admin kurulu değil. requirements-firebase.txt dosyasını yükleyin.")
+    if not FIREBASE_SERVICE_ACCOUNT_FILE.is_file():
+        raise FileNotFoundError(f"Firebase servis hesabı bulunamadı: {FIREBASE_SERVICE_ACCOUNT_FILE.name}")
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(
+            firebase_credentials.Certificate(str(FIREBASE_SERVICE_ACCOUNT_FILE)),
+            {"projectId": "derscalismauygulamam"},
+        )
+    return firebase_firestore.client()
 
 # Arayüzün üç dilde kullanılabilmesi için sabit metinlerin karşılıkları.
 # Dosya adları, PDF içeriği ve kullanıcı tarafından yazılan metinler çevrilmez.
@@ -1193,6 +1217,9 @@ class PDFStudio(QMainWindow):
         calendar_menu = self.menuBar().addMenu(t("Takvim")); calendar_menu.addAction(t("Takvimi aç"), self.open_calendar); calendar_menu.addAction(t("Bugünün notlarını kontrol et"), self.check_reminders)
         qwen_menu = self.menuBar().addMenu(t("Qwen AI")); qwen_menu.addAction(t("Türkçe fine-tuning hazırlığı"), self.open_finetune_dialog)
         drive_menu = self.menuBar().addMenu("Google Drive"); drive_menu.addAction("Senkronizasyon panelini aç", self.open_drive_sync_dialog)
+        mobile_menu = self.menuBar().addMenu("Android / Mobil")
+        mobile_menu.addAction("Notları Android'e gönder", self.sync_notes_to_android)
+        mobile_menu.addAction("Android notlarını aç", lambda: self.tabs.setCurrentIndex(1))
         editor_menu = self.menuBar().addMenu("PDF metin düzenleme"); editor_menu.addAction("PDF metin düzenleyiciyi aç", self.open_pdf_text_editor)
         language_menu = self.menuBar().addMenu(t("Dil / Language"))
         for code, name in LANGUAGE_NAMES.items():
@@ -1285,6 +1312,31 @@ class PDFStudio(QMainWindow):
         actions.addAction(t("PDF aç"), self.open_file)
         actions.addAction(t("Notları sesli oku"), self.read_notes)
         actions.addAction(t("PDF'yi özetle"), lambda: (self.tabs.setCurrentIndex(6), self.ask_ai("Bu PDF'yi kısa ve anlaşılır maddeler halinde özetle.")))
+
+    def sync_notes_to_android(self):
+        """Masaüstü notlarını Android uygulamasının okuyacağı Firestore belgesine yazar."""
+        text = self.notes.toPlainText().strip()
+        if not text:
+            QMessageBox.information(self, "Android senkronizasyonu", "Gönderilecek bir not bulunmuyor.")
+            return
+        try:
+            db = get_desktop_firestore()
+            document = db.collection("notes").document("python_desktop_notes")
+            existing = document.get()
+            payload = {
+                "baslik": "Bilgisayar Notları",
+                "icerik": text,
+                "ownerUid": "desktop-python",
+                "source": "python_desktop",
+                "updatedAt": firebase_firestore.SERVER_TIMESTAMP,
+            }
+            if not existing.exists:
+                payload["createdAt"] = firebase_firestore.SERVER_TIMESTAMP
+            document.set(payload, merge=True)
+            self.status_msg("Notlar Android uygulamasına gönderildi.")
+            QMessageBox.information(self, "Android senkronizasyonu", "Notlar Firestore'a gönderildi. Android uygulamasında yenilenir.")
+        except Exception as exc:
+            QMessageBox.warning(self, "Android senkronizasyonu", f"Notlar gönderilemedi:\n{exc}")
 
     def build_tabs(self):
         info = QWidget(); il = QVBoxLayout(info); self.info_label = QLabel(); self.info_label.setWordWrap(True); il.addWidget(self.info_label); il.addStretch(); self.tabs.addTab(info, "Dosya")

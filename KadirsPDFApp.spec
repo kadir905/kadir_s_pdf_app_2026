@@ -5,11 +5,17 @@ a = Analysis(
     ['pdf_studio.py'],
     pathex=[],
     binaries=[],
-    datas=[('kadir_pdf_logo.png', '.'), ('kadir_pdf_logo.ico', '.')],
+    datas=[
+        ('kadir_pdf_logo.png', '.'),
+        ('kadir_pdf_logo.ico', '.'),
+        ('vosk-model-small-tr-0.3', 'vosk-model-small-tr-0.3'),
+    ],
     hiddenimports=[
         'googleapiclient.discovery', 'googleapiclient.http',
         'google_auth_oauthlib.flow', 'google.auth.transport.requests',
         'google.oauth2.credentials', 'httplib2', 'oauthlib.oauth2',
+        'firebase_admin', 'firebase_admin.credentials', 'firebase_admin.firestore',
+        'google.cloud.firestore', 'google.cloud.firestore_v1',
     ],
     hookspath=[],
     hooksconfig={},

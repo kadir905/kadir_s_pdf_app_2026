@@ -1,0 +1,29 @@
+# Firebase service-account credentials - never commit or share
+*-firebase-adminsdk-*.json
+
+# Local Firebase/Google credentials and machine-specific settings
+google-services.json
+astro_pdf_mobile/google-services.json
+astro_pdf_mobile/android/local.properties
+
+# Generated application data and build outputs
+pdf_studio_state.json
+build/
+dist/
+installer/
+astro_pdf_mobile/build/
+astro_pdf_mobile/.dart_tool/
+astro_pdf_mobile/.flutter-plugins
+astro_pdf_mobile/.flutter-plugins-dependencies
+astro_pdf_mobile/.packages
+astro_pdf_mobile/android/.gradle/
+astro_pdf_mobile/android/app/debug/
+astro_pdf_mobile/android/app/profile/
+*.apk
+*.aab
+*.exe
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
