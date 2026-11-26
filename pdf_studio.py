@@ -766,7 +766,7 @@ class PDFTextEditorDialog(QDialog):
         self.words_by_page = []
         self.word_styles_by_page = []
         self.edits = {}
-        self.setWindowTitle("PDF metin dÃ¼zenleyici")
+        self.setWindowTitle("PDF metin düzenleyici")
         self.resize(1000, 800)
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
@@ -1140,9 +1140,9 @@ class PDFStudio(QMainWindow):
         header = self.findChild(QFrame, "header")
         if not header: return
         layout = header.layout(); self.sidebar_toggle = QPushButton("☰"); self.sidebar_toggle.setToolTip("Sol menüyü aç/kapat"); self.sidebar_toggle.clicked.connect(self.toggle_sidebar); layout.insertWidget(0, self.sidebar_toggle)
-        # Eski görseldeki marka adının kalmaması için başlıkta yeni adı taşıyan
-        # vektör logoyu kullanıyoruz; EXE simgesi yine ICO dosyasından gelir.
-        self.logo_widget = AppLogo(compact=False)
+        logo_path = APP_DIR / "kadir_pdf_logo.png"; self.logo_widget = QLabel()
+        if logo_path.exists(): self.logo_widget.setPixmap(QPixmap(str(logo_path)).scaled(185, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else: self.logo_widget.setText(APP_NAME)
         self.logo_widget.setToolTip(APP_NAME); layout.insertWidget(1, self.logo_widget)
         self.right_toggle = QPushButton("▣"); self.right_toggle.setToolTip("Sağ paneli aç/kapat"); self.right_toggle.clicked.connect(self.toggle_right_panel); layout.addWidget(self.right_toggle)
 
@@ -1193,7 +1193,7 @@ class PDFStudio(QMainWindow):
         calendar_menu = self.menuBar().addMenu(t("Takvim")); calendar_menu.addAction(t("Takvimi aç"), self.open_calendar); calendar_menu.addAction(t("Bugünün notlarını kontrol et"), self.check_reminders)
         qwen_menu = self.menuBar().addMenu(t("Qwen AI")); qwen_menu.addAction(t("Türkçe fine-tuning hazırlığı"), self.open_finetune_dialog)
         drive_menu = self.menuBar().addMenu("Google Drive"); drive_menu.addAction("Senkronizasyon panelini aç", self.open_drive_sync_dialog)
-        editor_menu = self.menuBar().addMenu("PDF metin dÃ¼zenleme"); editor_menu.addAction("PDF metin dÃ¼zenleyiciyi aÃ§", self.open_pdf_text_editor)
+        editor_menu = self.menuBar().addMenu("PDF metin düzenleme"); editor_menu.addAction("PDF metin düzenleyiciyi aç", self.open_pdf_text_editor)
         language_menu = self.menuBar().addMenu(t("Dil / Language"))
         for code, name in LANGUAGE_NAMES.items():
             action = language_menu.addAction(name); action.setCheckable(True); action.setChecked(code == self.language); action.triggered.connect(lambda checked=False, value=code: self.set_language(value))

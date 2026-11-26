@@ -26,7 +26,7 @@ class PDFStudioTests(unittest.TestCase):
     def test_application_builds_main_menus(self):
         menu_names = [action.text() for action in self.window.menuBar().actions()]
         self.assertIn("Google Drive", menu_names)
-        self.assertIn("PDF metin dÃ¼zenleme", menu_names)
+        self.assertIn("PDF metin düzenleme", menu_names)
         self.assertIn("Dosya", menu_names)
         self.assertIn("Çalışma alanı", menu_names)
         self.assertIn("Çalışma paneli", menu_names)
