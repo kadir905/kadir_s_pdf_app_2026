@@ -647,7 +647,7 @@ Oluşan dosya genellikle `dist\KadirsPDFApp.exe` konumunda bulunur. PyInstaller 
 
 ### Hazır Windows sürümü
 
-ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.0.0 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.0.0) indirebilirsiniz. `KadirsPDFApp.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
+ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.1.1 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.1.1) indirebilirsiniz. `KadirsPDFApp.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
 
 ## Proje yapısı
 
