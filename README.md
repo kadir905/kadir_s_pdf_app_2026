@@ -64,6 +64,8 @@ AstroPDF Studio, Windows üzerinde çalışan, PDF belgelerini yerel olarak açm
 
 - [Arayüz galerisi](#arayuz-galerisi)
 - [Öne çıkan özellikler](#öne-çıkan-özellikler)
+- [Flutter Android uygulaması](#flutter-android-uygulaması)
+- [Firebase ve cihazlar arası not senkronizasyonu](#firebase-ve-cihazlar-arası-not-senkronizasyonu)
 - [Gereksinimler](#gereksinimler)
 - [Kurulum](#kurulum)
 - [Uygulamayı çalıştırma](#uygulamayı-çalıştırma)
@@ -78,9 +80,22 @@ AstroPDF Studio, Windows üzerinde çalışan, PDF belgelerini yerel olarak açm
 - [Klavye kısayolları](#klavye-kısayolları)
 - [Testler](#testler)
 - [Windows EXE oluşturma](#windows-exe-oluşturma)
+- [Windows setup.exe oluşturma](#windows-setupexe-oluşturma)
 - [Proje yapısı](#proje-yapısı)
 - [Veri saklama ve gizlilik](#veri-saklama-ve-gizlilik)
 - [Sorun giderme](#sorun-giderme)
+
+## Projenin kısa özeti
+
+AstroPDF Studio iki istemci ve ortak bir veri katmanından oluşur:
+
+| Bileşen | Teknoloji | Görevi |
+| --- | --- | --- |
+| Windows uygulaması | Python, PySide6, PyMuPDF | PDF açma, anotasyon, not, dışa aktarma, ses ve yerel AI |
+| Android uygulaması | Flutter, Firebase Auth, Cloud Firestore | Notları telefondan görüntüleme, düzenleme, silme, sesli okuma ve konuşarak yazma |
+| Ortak veri katmanı | Firebase Authentication + Firestore | Kullanıcı oturumu ve cihazlar arası not senkronizasyonu |
+
+Varsayılan çalışma biçiminde PDF dosyaları ve masaüstü notları bilgisayarda yerel tutulur. Android ile paylaşılacak masaüstü notu, Python uygulamasındaki **Android / Mobil > Notları Android'e gönder** komutuyla Firestore'daki `notes` koleksiyonuna aktarılır. Android uygulaması bu koleksiyonu canlı olarak dinler.
 
 ## Öne çıkan özellikler
 
@@ -120,6 +135,116 @@ Metin anotasyonlarında yazı tipi, boyut, kalın, italik, altı çizili, hizala
 - Sol ve sağ panelleri bağımsız olarak açıp kapatma.
 - Tam ekran görünümü.
 - Ayarlar penceresinden not otomatik kaydı ve dışa aktarma sonrası Dosya sekmesine dönüş tercihi.
+
+## Flutter Android uygulaması
+
+Flutter istemcisi `astro_pdf_mobile/` klasöründedir. Uygulama Firebase Authentication ile giriş yaptıktan sonra kullanıcının notlarını Cloud Firestore'dan okur.
+
+### Android özellikleri
+
+- E-posta/şifre ile hesap oluşturma ve giriş.
+- Google hesabıyla giriş.
+- Firestore'daki notları canlı listeleme.
+- Not arama, ekleme, düzenleme ve silme.
+- Koyu/açık tema değiştirme.
+- Notu Türkçe seslendirme.
+- Mikrofonla konuşarak not yazma.
+- Konuşma durduğunda yeniden dinlemeyi deneyen sürekli dinleme akışı.
+- **Menü** üzerinden tüm notlar, bilgisayardan gelen notlar veya telefondaki notlar filtresi.
+- Bilgisayardan gelen notlarda `Bilgisayardan senkronize` etiketi.
+
+### Flutter kurulumu
+
+Flutter SDK, Android SDK, Android Studio ve USB hata ayıklaması açık bir Android cihaz gerekir. Kurulumdan sonra kontrol edin:
+
+```powershell
+flutter doctor
+flutter devices
+```
+
+Proje klasöründe bağımlılıkları indirin ve analiz/test çalıştırın:
+
+```powershell
+cd astro_pdf_mobile
+flutter pub get
+flutter analyze
+flutter test
+```
+
+Bağlı cihazda debug sürümünü çalıştırmak için:
+
+```powershell
+flutter run
+```
+
+Release APK üretmek için:
+
+```powershell
+flutter build apk --release
+```
+
+APK çıktısı `astro_pdf_mobile/build/app/outputs/flutter-apk/app-release.apk` konumunda oluşur. Bağlı telefona kurmak için:
+
+```powershell
+flutter install --release
+```
+
+### Android Firebase yapılandırması
+
+`google-services.json` ve Firebase servis yapılandırmaları projeye özel olduğu için GitHub'a eklenmez. Yeni bir checkout sonrasında kendi Firebase projeniz için şu adımları uygulayın:
+
+1. Firebase Console'da Android uygulamasını `com.kadiroral.astro_pdf_mobile` paket adıyla ekleyin.
+2. `google-services.json` dosyasını `astro_pdf_mobile/android/app/` klasörüne indirin.
+3. Firebase Authentication içinde Email/Password ve Google sağlayıcılarını etkinleştirin.
+4. Cloud Firestore veritabanını oluşturun ve kökteki `firestore.rules` kurallarını uygulayın.
+5. Android uygulamasının SHA-1/SHA-256 imzalama parmak izlerini Firebase'e ekleyin.
+6. `flutterfire configure` çalıştırarak `lib/firebase_options.dart` dosyasını kendi projenize göre üretin.
+
+Google ile giriş çalışmıyorsa özellikle SHA-1 parmak izi, Android paket adı, Google sağlayıcısının etkinliği ve OAuth istemci yapılandırması kontrol edilmelidir.
+
+## Firebase ve cihazlar arası not senkronizasyonu
+
+Firebase entegrasyonu iki ayrı amaç için kullanılır:
+
+- **Authentication:** Android kullanıcısının oturumunu yönetir.
+- **Cloud Firestore:** Notları `notes` koleksiyonunda saklar.
+
+Her notta kullanılan temel alanlar şunlardır:
+
+| Alan | Açıklama |
+| --- | --- |
+| `baslik` | Not başlığı |
+| `icerik` | Not metni |
+| `ownerUid` | Notu oluşturan Firebase kullanıcısının UID'si |
+| `source` | `android` veya `python_desktop` kaynağı |
+| `createdAt` | Oluşturulma zamanı |
+| `updatedAt` | Son güncelleme zamanı |
+
+### Python notunu Android'e gönderme
+
+1. Windows uygulamasını açın.
+2. Sağ panelde **Notlar** sekmesine masaüstü notunu yazın.
+3. Menü çubuğunda **Android / Mobil > Notları Android'e gönder** seçeneğine basın.
+4. Android uygulamasında oturum açın.
+5. Not, canlı Firestore akışıyla listede görünür.
+
+Python masaüstü istemcisi `python_desktop_notes` kimliğini kullanarak tek bir bilgisayar notu belgesini günceller; böylece her gönderimde kopya not oluşturulmaz. Android'deki kaynak filtresinden yalnızca bilgisayardan gelen notları gösterebilirsiniz.
+
+### Python Firebase servis hesabı
+
+Masaüstü senkronizasyonu Firebase Admin SDK kullandığı için servis hesabı JSON dosyası gerekir. Dosyanın adı:
+
+```text
+derscalismauygulamam-firebase-adminsdk-fbsvc-50de873e2a.json
+```
+
+Bu dosya `.gitignore` ile korunur ve GitHub'a gönderilmemelidir. `firebase_api.py` için API kurulumu ve güvenlik açıklamaları [FIREBASE_API_SETUP.md](./FIREBASE_API_SETUP.md) dosyasındadır. Servis hesabı anahtarını yalnızca güvendiğiniz kişisel bilgisayarda, erişimi kısıtlı bir klasörde saklayın.
+
+### Firestore güvenliği
+
+Üretimde önerilen kural, her kullanıcının yalnızca kendi `ownerUid` alanına sahip notlarını okuyup değiştirebilmesidir. Geçici geliştirme kurallarıyla gerçek kullanıcı verisi yayınlamayın. Kuralları değiştirdikten sonra Firebase Console'da deploy edip Android'de okuma, ekleme, düzenleme ve silme işlemlerini ayrı ayrı test edin.
+
+> Önemli: Firebase Admin servis hesabı anahtarı istemci uygulamasına dağıtılmamalıdır. Kişisel yerel setup paketinde kullanılabilir; genel dağıtım için Python istemcisini doğrudan Admin SDK yerine kimlik doğrulamalı bir backend API'ye bağlamak gerekir.
 
 ## Gereksinimler
 
@@ -649,6 +774,25 @@ Oluşan dosya genellikle `dist\AstroPDFStudio.exe` konumunda bulunur. PyInstalle
 
 ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.4.0 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.4.0) indirebilirsiniz. `AstroPDFStudio.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
 
+## Windows setup.exe oluşturma
+
+Kurulum sihirbazı için [Inno Setup](https://jrsoftware.org/isinfo.php) ve PyInstaller gerekir. Önce masaüstü uygulamasını PyInstaller spec dosyasıyla paketleyin:
+
+```powershell
+py -m pip install pyinstaller
+pyinstaller --clean --noconfirm KadirsPDFApp.spec
+```
+
+Ardından Inno Setup Compiler ile kök dizindeki `AstroPDFStudio.iss` dosyasını derleyin:
+
+```powershell
+iscc AstroPDFStudio.iss
+```
+
+Kurulum dosyası `installer\AstroPDFStudio-Setup.exe` konumunda oluşur. Setup, uygulamayı kullanıcı hesabının `%LOCALAPPDATA%\Programs\AstroPDF Studio` klasörüne kurar; Başlat menüsü ve isteğe bağlı masaüstü kısayolu oluşturur.
+
+Servis hesabı JSON dosyası varsayılan olarak repoya dahil edilmez. Kişisel, yerel kurulumda `AstroPDFStudio.iss` içindeki ilgili `[Files]` satırıyla ayrıca eklenebilir; genel dağıtımda bu yapılmamalıdır.
+
 ## Proje yapısı
 
 ```text
@@ -656,9 +800,15 @@ pdf_uygulamasi/
 ├── pdf_studio.py          # Ana PySide6 uygulaması
 ├── test_pdf_studio.py     # Birim ve arayüz testleri
 ├── requirements.txt       # Python bağımlılıkları
+├── firebase_api.py        # İsteğe bağlı Firebase API servisi
+├── firestore.rules        # Firestore güvenlik kuralları
+├── requirements-firebase.txt # Firebase API bağımlılıkları
 ├── kadir_pdf_logo.png     # Uygulama logosu
 ├── kadir_pdf_logo.ico     # Windows uygulama simgesi
 ├── KadirsPDFApp.spec      # PyInstaller yapılandırması
+├── AstroPDFStudio.iss     # Inno Setup yapılandırması
+├── astro_pdf_mobile/      # Flutter Android istemcisi
+├── vosk-model-small-tr-0.3/ # Yerel Türkçe ses modeli
 ├── README.md              # Proje dokümantasyonu
 ├── docs/screenshots/      # Orijinal uygulama arayüzü ekran görüntüleri
 ├── build/                 # PyInstaller geçici çıktı klasörü
