@@ -647,7 +647,7 @@ Oluşan dosya genellikle `dist\KadirsPDFApp.exe` konumunda bulunur. PyInstaller 
 
 ### Hazır Windows sürümü
 
-ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.1.1 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.1.1) indirebilirsiniz. `KadirsPDFApp.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
+ICO simgesi EXE içine gömülmüş hazır Windows sürümünü [v1.2.0 release sayfasından](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.2.0) indirebilirsiniz. `KadirsPDFApp.exe` tek dosyalı dağıtımdır; Vosk Türkçe model klasörü ve Ollama/Qwen kurulumu uygulamadan ayrı tutulur.
 
 ## Proje yapısı
 
@@ -798,7 +798,7 @@ py -m pip install -r requirements.txt
 py pdf_studio.py
 ```
 
-For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.1.1 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.1.1).
+For the AI assistant, install Ollama and pull a compatible Qwen model such as `qwen2.5:7b`. For speech recognition, keep the `vosk-model-small-tr-0.3` folder next to the application or inside the `models` folder. The ready-to-use Windows build is available from the [v1.2.0 release](https://github.com/kadir905/kadir_s_pdf_app_2026/releases/tag/v1.2.0).
 
 For Google Drive sync, enable the Google Drive API in Google Cloud Console, create a Desktop OAuth client, download its JSON file, and select it in **Google Drive > Open sync panel**. The app requests only the `drive.file` scope and stores the refresh token locally under `%LOCALAPPDATA%\\KadirsPDFApp`; never commit either JSON credentials or token files.
 
